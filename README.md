@@ -173,14 +173,13 @@ npm run validate     # typecheck + lint + test + build, in order
   admin-only RLS update policy for lifting one. Every other write path
   (the public permission endpoint, unsubscribe, bounce/complaint webhooks)
   is a SECURITY DEFINER function added in a later milestone, by design.
-- **Flagged for review, not yet confirmed as correct:** per the spec's
-  literal sending-decision order, an active `all_marketing` suppression
-  blocks the `report` purpose too, not just `blog`/`recruitment`. That
-  means someone who's unsubscribed from all marketing couldn't get a
-  salary-check report they separately requested. Worth confirming this is
-  actually intended before Milestone 3 builds the report endpoint on top
-  of `can_send_email()` — see the comment above that function in
-  `supabase/migrations/20260902000005_permission_ledger.sql`.
+- **Decided:** an active `all_marketing` suppression does **not** block
+  `report`. A report is a single thing the person explicitly requested in
+  its own separate action — transactional, not an ongoing marketing send
+  — so unsubscribing from marketing shouldn't cancel a report they
+  separately asked for. Only `all_email` (hard bounce, complaint) blocks
+  every purpose including report. See
+  `supabase/migrations/20260902000006_report_survives_all_marketing.sql`.
 
 ## What's still ahead (see the spec for full detail)
 

@@ -95,7 +95,7 @@ begin
       else format('FAIL 6b: expected recruitment still allowed, got (%s, %s)', v_result.allowed, v_result.reason)
     end);
 
-  -- 7. "unsubscribe all marketing" blocks recruitment (and report, per spec)
+  -- 7. "unsubscribe all marketing" blocks recruitment...
   insert into suppression_entries (email_address_id, scope, reason, source)
   values (v_email_id, 'all_marketing', 'unsubscribe', 'test_fixture');
 
@@ -103,8 +103,22 @@ begin
   select * into v_result from can_send_email(v_email_id, 'recruitment');
   insert into test_results values (v_seq,
     case when not v_result.allowed and v_result.reason = 'all_marketing_suppressed'
-      then 'PASS 7: all_marketing suppression blocks recruitment'
-      else format('FAIL 7: expected all_marketing_suppressed, got (%s, %s)', v_result.allowed, v_result.reason)
+      then 'PASS 7a: all_marketing suppression blocks recruitment'
+      else format('FAIL 7a: expected all_marketing_suppressed, got (%s, %s)', v_result.allowed, v_result.reason)
+    end);
+
+  -- ...but a separately-requested report is transactional, not marketing,
+  -- and survives an all_marketing unsubscribe (see README decision note).
+  -- Re-open the single-use report preference to prove it specifically.
+  update communication_preferences set fulfilled_at = null
+  where email_address_id = v_email_id and purpose = 'report';
+
+  v_seq := v_seq + 1;
+  select * into v_result from can_send_email(v_email_id, 'report');
+  insert into test_results values (v_seq,
+    case when v_result.allowed and v_result.reason = 'allowed'
+      then 'PASS 7b: all_marketing suppression does not block report'
+      else format('FAIL 7b: expected report allowed, got (%s, %s)', v_result.allowed, v_result.reason)
     end);
 
   -- 8. hard bounce / complaint (all_email) blocks every purpose
