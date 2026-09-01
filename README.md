@@ -1,10 +1,16 @@
 # Yateworth Recruitment CRM
 
-Built per `Recruitment_CRM_Build_Specification.md`, in gated phases. This is
-**Phase 0: foundation** — authentication, staff profiles/roles, Row Level
-Security, and the audit log. No recruitment, survey or campaign features
-yet; no live Supabase/Netlify/Apollo/email-provider credentials are wired
-in yet.
+Built per `docs/Recruitment_CRM_Build_Specification.md`, in gated phases.
+
+- **Milestone 1 (foundation)** — done. Authentication, staff profiles/roles,
+  Row Level Security, audit log.
+- **Milestone 2 (permission ledger)** — done. `communication_preferences`,
+  `consent_events`, `suppression_entries`, and the `can_send_email()`
+  eligibility check every future send has to run.
+
+Connected to a real (free-tier) Supabase project. Not connected yet:
+Netlify, Apollo, or an email provider. No public-facing form or send path
+exists yet — that's Milestone 3 onward.
 
 ## Stack
 
@@ -19,15 +25,21 @@ Level Security).
 - `netlify/functions/` — the pattern for server-side code (secrets never
   reach the browser). `health.ts` is a working example that just confirms
   env vars are set.
-- `supabase/migrations/` — three migrations: extensions/enums, `profiles` +
-  roles + RLS, audit logging, and the minimal `firms`/`people`/
+- `supabase/migrations/` — five migrations: extensions/enums, `profiles` +
+  roles + RLS, audit logging, the minimal `firms`/`people`/
   `email_addresses`/`candidate_profiles` tables (with RLS) needed to seed
-  fictional data.
+  fictional data, an audit-trigger bugfix, and the permission ledger
+  (`communication_preferences`, `consent_events`, `suppression_entries`,
+  `can_send_email()`, `admin_add_suppression()`).
 - `supabase/seed/seed.sql` — fictional firms/people/candidates only.
+- `supabase/tests/permission_ledger.sql` — SQL assertions proving
+  `can_send_email()`'s decision logic against a real database (see
+  "Testing against the live database" below).
 
 Nothing beyond this exists yet — no jobs, submissions, surveys, campaigns,
-consent/suppression tables, or Apollo integration. Those land in Phase 1
-and Phase 2 per the spec.
+or Apollo integration, and no public-facing form writes to the permission
+ledger yet (that's Milestone 3). Those land in Phase 1 and Phase 2 per the
+spec.
 
 ## Getting this running for real
 
@@ -102,6 +114,28 @@ every push to `main`, the same way GitHub Pages did for the marketing
 site — the difference is Netlify also runs `netlify/functions/*` as
 serverless endpoints and keeps the secret env vars server-side.
 
+## Testing against the live database
+
+There's no Docker here, so `supabase test db` (which needs local Postgres)
+isn't available. Instead, `scripts/run-remote-sql.cjs` runs a `.sql` file
+against the linked project via the Supabase Management API, using a
+personal access token — never the database password or service role key.
+Every file under `supabase/tests/` wraps its assertions in
+`BEGIN`/`ROLLBACK`, so running them against a real project never leaves
+data behind (verified — see the migration 2 commit).
+
+```bash
+# Get a token from supabase.com/dashboard/account/tokens — this is a
+# session-only export, never put it in a file.
+export SUPABASE_PROJECT_REF=<your-project-ref>
+export SUPABASE_ACCESS_TOKEN=<your-personal-access-token>
+
+npm run db:test -- supabase/tests/permission_ledger.sql
+```
+
+Any line in the output starting `FAIL` means an assertion didn't hold;
+the script also exits non-zero in that case.
+
 ## Local Postgres (optional, needs Docker)
 
 `supabase/config.toml` is set up for `npx supabase start`, which runs a
@@ -131,8 +165,22 @@ npm run validate     # typecheck + lint + test + build, in order
 - `profiles.active` defaults to `false` for every new sign-up — an admin
   has to deliberately activate an account and assign its role. There is no
   self-service path to CRM access.
-- `audit_log` is append-only (no application role has update/delete grants
-  on it).
+- `audit_log` and `consent_events` are append-only (no application role
+  has update/delete grants on either).
+- `communication_preferences` and `suppression_entries` have no client
+  insert policy at all — the only way a client role can write to them
+  right now is `admin_add_suppression()` (creating a suppression) and the
+  admin-only RLS update policy for lifting one. Every other write path
+  (the public permission endpoint, unsubscribe, bounce/complaint webhooks)
+  is a SECURITY DEFINER function added in a later milestone, by design.
+- **Flagged for review, not yet confirmed as correct:** per the spec's
+  literal sending-decision order, an active `all_marketing` suppression
+  blocks the `report` purpose too, not just `blog`/`recruitment`. That
+  means someone who's unsubscribed from all marketing couldn't get a
+  salary-check report they separately requested. Worth confirming this is
+  actually intended before Milestone 3 builds the report endpoint on top
+  of `can_send_email()` — see the comment above that function in
+  `supabase/migrations/20260902000005_permission_ledger.sql`.
 
 ## What's still ahead (see the spec for full detail)
 
