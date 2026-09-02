@@ -695,6 +695,53 @@ export type Database = {
           },
         ]
       }
+      gmail_connections: {
+        Row: {
+          access_token: string
+          created_at: string
+          google_email: string
+          id: string
+          last_history_id: string | null
+          last_synced_at: string | null
+          profile_id: string
+          refresh_token: string
+          token_expires_at: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          google_email: string
+          id?: string
+          last_history_id?: string | null
+          last_synced_at?: string | null
+          profile_id: string
+          refresh_token: string
+          token_expires_at: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          google_email?: string
+          id?: string
+          last_history_id?: string | null
+          last_synced_at?: string | null
+          profile_id?: string
+          refresh_token?: string
+          token_expires_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gmail_connections_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           closed_at: string | null
@@ -1460,6 +1507,16 @@ export type Database = {
         }[]
       }
       get_active_survey: { Args: { p_slug: string }; Returns: Json }
+      list_surveys: {
+        Args: never
+        Returns: {
+          closes_at: string
+          opens_at: string
+          slug: string
+          status: string
+          title: string
+        }[]
+      }
       normalise_email: { Args: { p_email: string }; Returns: string }
       process_email_event: {
         Args: {
@@ -1491,6 +1548,10 @@ export type Database = {
           p_scope: Database["public"]["Enums"]["suppression_scope"]
           p_source?: string
         }
+        Returns: undefined
+      }
+      set_survey_status: {
+        Args: { p_slug: string; p_status: string }
         Returns: undefined
       }
       submit_permission_request: {
@@ -1753,11 +1814,4 @@ export const Constants = {
     },
   },
 } as const
-
-/**
- * Convenience alias, kept in sync with the generated Enums type above.
- * Regenerate this whole file with:
- *   npx supabase gen types typescript --project-id <ref> > src/types/database.ts
- * then re-add this block (it's the only hand-authored part of the file).
- */
 export type AppRole = Database['public']['Enums']['app_role']

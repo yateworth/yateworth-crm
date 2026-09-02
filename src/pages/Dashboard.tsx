@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import { CountCard } from '@/components/CountCard'
 import {
@@ -9,12 +10,14 @@ import {
   type SurveyAggregateReport,
 } from '@/lib/reporting'
 import { fetchMyDueTasks, setTaskStatus, type Task } from '@/lib/tasks'
+import { fetchSurveys, type SurveyListItem } from '@/lib/surveys'
 
 const SURVEY_SLUG = 'australian-legal-survey'
 
 export function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [survey, setSurvey] = useState<SurveyAggregateReport | null>(null)
+  const [surveyMeta, setSurveyMeta] = useState<SurveyListItem | null>(null)
   const [myTasks, setMyTasks] = useState<Task[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -28,14 +31,16 @@ export function DashboardPage() {
 
     async function load() {
       try {
-        const [summaryResult, surveyResult, tasksResult] = await Promise.all([
+        const [summaryResult, surveyResult, surveysResult, tasksResult] = await Promise.all([
           fetchDashboardSummary(),
           fetchSurveyAggregateReport(SURVEY_SLUG),
+          fetchSurveys().catch(() => []),
           fetchMyDueTasks(),
         ])
         if (cancelled) return
         setSummary(summaryResult)
         setSurvey(surveyResult)
+        setSurveyMeta(surveysResult.find((s) => s.slug === SURVEY_SLUG) ?? null)
         setMyTasks(tasksResult)
       } catch (err) {
         if (cancelled) return
@@ -123,38 +128,20 @@ export function DashboardPage() {
 
         {survey && (
           <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-sec">
-              Australian Legal Survey
-            </h2>
-            <p className="mt-2 text-sm text-sec">
-              {survey.total_responses} response{survey.total_responses === 1 ? '' : 's'} total.
-              Any answer given by fewer than {survey.min_cohort} respondents is withheld below.
-            </p>
-            <div className="mt-3 space-y-4">
-              {survey.questions
-                .filter((q) => q.options && q.options.length > 0)
-                .map((question) => (
-                  <div key={question.key} className="rounded-lg border border-ink/10 bg-paper p-5">
-                    <h3 className="font-display text-sm font-semibold text-ink">{question.key}</h3>
-                    <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {question.options?.map((opt) => (
-                        <div key={opt.value} className="flex items-baseline justify-between text-sm">
-                          <dt className="text-sec">{opt.value}</dt>
-                          <dd className="font-medium tabular-nums">
-                            {opt.suppressed ? (
-                              <span className="text-ink/40" title="Fewer than the minimum cohort">
-                                suppressed
-                              </span>
-                            ) : (
-                              <span className="text-ink">{opt.count}</span>
-                            )}
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </div>
-                ))}
-            </div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-sec">Surveys</h2>
+            <Link
+              to="/surveys"
+              className="mt-3 flex items-center justify-between gap-4 rounded-lg border border-ink/10 bg-paper p-5 hover:bg-ink/5"
+            >
+              <div>
+                <p className="font-medium text-ink">Australian Legal Survey</p>
+                <p className="mt-1 text-sm text-sec">
+                  {survey.total_responses} response{survey.total_responses === 1 ? '' : 's'} total
+                  {surveyMeta ? ` · ${surveyMeta.status}` : ''}
+                </p>
+              </div>
+              <span className="text-sm text-sec">View report →</span>
+            </Link>
           </section>
         )}
       </div>

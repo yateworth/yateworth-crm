@@ -9,6 +9,8 @@ import { FirmsPage } from '@/pages/Firms'
 import { FirmDetailPage } from '@/pages/FirmDetail'
 import { JobsPage } from '@/pages/Jobs'
 import { JobDetailPage } from '@/pages/JobDetail'
+import { SurveysPage } from '@/pages/Surveys'
+import { SurveyDetailPage } from '@/pages/SurveyDetail'
 
 export default function App() {
   return (
@@ -69,6 +71,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <JobDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/surveys"
+            element={
+              <ProtectedRoute>
+                <SurveysPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/surveys/:slug"
+            element={
+              <ProtectedRoute>
+                <SurveyDetailPage />
               </ProtectedRoute>
             }
           />

@@ -439,10 +439,18 @@ npm run validate     # typecheck + lint + test + build, in order
   plan's own scoping. A candidate's detail page shows every job they've
   been submitted to. `direct_table_rls.sql`-style testing (`set local
   role authenticated`) used from the start this time, not retrofitted.
-- **Plan for the rest of "make this a real CRM"** is in
-  `docs/crm-functionality-plan.md`: making the survey section its own
-  clickable page instead of a dashboard widget (Stage 4) is what's left
-  of the original 4-stage plan.
+- **Stage 4 (surveys as their own page)** — done, completing the
+  original 4-stage plan in `docs/crm-functionality-plan.md`. New
+  `list_surveys()`/`set_survey_status()` functions (migration 20 —
+  `list_surveys` is admin/marketing read, `set_survey_status` is
+  admin-only, both raising an explicit exception for an unauthorised
+  caller rather than the silent-empty-result shape a first draft of
+  `list_surveys` had). `/surveys` lists every survey; `/surveys/:slug`
+  shows the full `survey_aggregate_report()` breakdown with an
+  admin-only open/draft/closed toggle, replacing the manual SQL update
+  that used to be the only way to open the Legal Survey. The dashboard's
+  survey section is now a one-line summary card linking into that page
+  instead of the full inline breakdown.
 - **Gmail sync — in progress**, full plan in `docs/crm-functionality-plan.md`
   under "Gmail sync (separate initiative)". `gmail_connections` table is
   live: holds OAuth tokens, deliberately has zero policies for any client
