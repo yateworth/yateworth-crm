@@ -3,6 +3,13 @@
 
 begin;
 
+-- Impersonate an active admin for this test transaction only.
+-- generate_campaign_recipients/claim_campaign_batch/record_email_sent
+-- now correctly require an active admin/marketing profile (see
+-- migration 15) - this test SQL runs with no real JWT (via the
+-- Management API).
+select set_config('request.jwt.claim.sub', '0cb3064c-f944-4648-b0e5-e2e49ec4f015', true);
+
 create temporary table test_results (seq int, result text) on commit drop;
 
 do $$

@@ -31,12 +31,53 @@ Built per `docs/Recruitment_CRM_Build_Specification.md`, in gated phases.
   disclosed**: `record_unsubscribe` takes an already-verified email
   identity rather than a raw token — see the note at the top of
   migration 12.
+- **Milestone 6 (report delivery + reporting)** — done. Report delivery
+  mirrors the campaign batch-claiming pattern (`claim_report_batch`,
+  `record_report_delivered`); `survey_aggregate_report()` withholds the
+  real count for any answer given by fewer than 5 respondents, flagging
+  it as suppressed rather than silently hiding it, per the spec's
+  "no figure from fewer than five responses, and say where we have done
+  it"; `dashboard_summary()` gives the operational counts from the
+  spec's dashboard list that exist at this milestone. **A real
+  vulnerability was found and fixed while building this** — see the
+  "Security fix" note below before reading anything else about this
+  milestone.
 
 **Live at [yateworth-crm.netlify.app](https://yateworth-crm.netlify.app)**
-— deployed via the Netlify CLI (not yet connected to auto-deploy on
-`git push`; see "Continuous deployment" below). Connected to a real
+— GitHub → Netlify continuous deployment is connected and verified (two
+real test pushes, both auto-deployed correctly). Connected to a real
 (free-tier) Supabase project. Not connected yet: Apollo, or a real email
 provider.
+
+## Security fix (found 2026-09-02, while building Milestone 6)
+
+`admin_add_suppression` (live since Milestone 2) and three campaign
+functions (`generate_campaign_recipients`, `claim_campaign_batch`,
+`record_email_sent`, live since Milestone 4) did not correctly enforce
+their admin/marketing-only restriction for a caller with **no active
+profile row at all** — a brand new sign-up nobody has approved yet, or a
+deactivated account. Two distinct bugs:
+
+1. `IF current_app_role() <> 'admin'` (and the equivalent `NOT IN (...)`
+   form) silently evaluates to `NULL` when the caller has no profile, and
+   PL/pgSQL's `IF` treats a `NULL` condition as false — so the guard
+   never fired. Verified live before fixing:
+   `select current_app_role() <> 'admin';` returned `NULL`, not `true`.
+2. `generate_campaign_recipients`, `claim_campaign_batch` and
+   `record_email_sent` had **no role check at all** — only the blanket
+   `GRANT EXECUTE ... TO authenticated`, meaning any authenticated user
+   regardless of role or active status could call them.
+
+Both fixed in `supabase/migrations/20260902000015_fix_role_check_gaps.sql`
+with an explicit `is null or` check, and `supabase/tests/role_check_regression.sql`
+proves all 8 affected functions now correctly reject an unauthorised
+caller — checking the actual error message, not just "an exception was
+thrown," so a function failing for the wrong reason would still show as
+a failure. Whether this gap was exploited before the fix: profile
+creation requires a real Supabase Auth sign-up, and this project has had
+exactly one real user (you) for its entire existence, so the realistic
+exposure window was effectively nil — but the bug was real regardless of
+whether anyone hit it.
 
 ## Stack
 
@@ -71,16 +112,20 @@ Level Security).
   campaigns (`mailing_lists`, `email_templates`, `campaigns`,
   `campaign_recipients`, `email_messages`, `email_events`,
   `generate_campaign_recipients()`, `claim_campaign_batch()`,
-  `record_email_sent()`), and unsubscribe/bounce processing
-  (`record_unsubscribe()`, `process_email_event()`).
+  `record_email_sent()`), unsubscribe/bounce processing
+  (`record_unsubscribe()`, `process_email_event()`), report delivery and
+  reporting (`claim_report_batch()`, `record_report_delivered()`,
+  `survey_aggregate_report()`, `dashboard_summary()`), and the role-check
+  security fix (see above).
 - `supabase/seed/seed.sql` — fictional firms/people/candidates only.
 - `supabase/tests/permission_ledger.sql`, `supabase/tests/anonymous_survey.sql`,
-  `supabase/tests/campaigns.sql`, `supabase/tests/unsubscribe_and_bounces.sql`
-  — SQL assertions run against the real database (see "Testing against the
-  live database" below), including a
-  schema-level proof that
-  `survey_responses`/`survey_answers` carry no identity column and
-  `report_requests` carries no survey-response reference.
+  `supabase/tests/campaigns.sql`, `supabase/tests/unsubscribe_and_bounces.sql`,
+  `supabase/tests/report_delivery_and_reporting.sql`,
+  `supabase/tests/role_check_regression.sql` — SQL assertions run against
+  the real database (see "Testing against the live database" below),
+  including a schema-level proof that `survey_responses`/`survey_answers`
+  carry no identity column and `report_requests` carries no
+  survey-response reference.
 
 Nothing beyond this exists yet — no jobs, submissions, real email sending
 (the fake provider is used everywhere), report delivery, or Apollo
@@ -279,8 +324,12 @@ npm run validate     # typecheck + lint + test + build, in order
 
 ## What's still ahead (see the spec for full detail)
 
-- **Phase 1 remaining**: report delivery + safe aggregate reporting
-  (Milestone 6), Apollo staging, CSV import/export.
+- **Phase 1 remaining**: Apollo staging, CSV import/export.
+- **No admin UI yet** for anything built in Milestones 2-6 (campaigns,
+  reporting, unsubscribe management) — these exist as tested database
+  functions and Netlify endpoints, callable via `supabase.rpc(...)`, but
+  there's no screen in `src/` to click through them yet. The dashboard
+  page still just shows who's signed in.
 - **Phase 2**: full candidate/firm/job CRM, matching, Apollo promotion,
   duplicate detection.
 - **Phase 3**: submissions, interviews, offers, placements, fee tracking.
