@@ -6,6 +6,8 @@ type CandidateProfile = Database['public']['Tables']['candidate_profiles']['Row'
 type EmailAddress = Database['public']['Tables']['email_addresses']['Row']
 export type RecordStatus = Database['public']['Enums']['record_status']
 
+export const CANDIDATE_STATUSES = ['prospective', 'active', 'submitted', 'placed', 'inactive'] as const
+
 export interface Candidate extends Person {
   candidate_profiles: CandidateProfile | null
   email_addresses: EmailAddress[]
@@ -175,6 +177,17 @@ export async function updateCandidate(personId: string, values: CandidateFormVal
 
 export async function setCandidateStatus(personId: string, status: RecordStatus): Promise<void> {
   const { error } = await supabase.from('people').update({ status }).eq('id', personId)
+  if (error) throw error
+}
+
+export async function setCandidateStage(
+  personId: string,
+  candidateStatus: (typeof CANDIDATE_STATUSES)[number],
+): Promise<void> {
+  const { error } = await supabase
+    .from('candidate_profiles')
+    .update({ candidate_status: candidateStatus })
+    .eq('person_id', personId)
   if (error) throw error
 }
 

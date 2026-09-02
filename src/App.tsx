@@ -15,6 +15,7 @@ import { MailingListsPage } from '@/pages/marketing/MailingLists'
 import { EmailTemplatesPage } from '@/pages/marketing/EmailTemplates'
 import { CampaignsPage } from '@/pages/marketing/Campaigns'
 import { CampaignDetailPage } from '@/pages/marketing/CampaignDetail'
+import { ComposePage } from '@/pages/marketing/Compose'
 
 export default function App() {
   return (
@@ -91,6 +92,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <SurveyDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/marketing/compose"
+            element={
+              <ProtectedRoute>
+                <ComposePage />
               </ProtectedRoute>
             }
           />

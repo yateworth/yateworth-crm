@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { Database } from '@/types/database'
+import type { Database, Json } from '@/types/database'
 
 export type PermissionPurpose = Database['public']['Enums']['permission_purpose']
 export type CampaignStatus = Database['public']['Enums']['campaign_status']
@@ -13,11 +13,22 @@ export interface CampaignWithNames extends Campaign {
   list_name: string | null
 }
 
-/** The three segment kinds sync_mailing_list_members understands (migration 21). */
-export type SegmentFilter =
-  | { kind: 'opted_in'; purpose: PermissionPurpose }
-  | { kind: 'candidate_status'; status: string }
-  | { kind: 'practice_area'; value: string }
+export type ContactType = 'any' | 'candidate' | 'firm_contact' | 'subscriber'
+
+/**
+ * The compound filter select_segment_email_ids interprets (migration 23).
+ * Every key is optional and AND-combined; contact_type narrows which of
+ * the three branches (candidate / firm contact / bare-email subscriber)
+ * are considered at all.
+ */
+export interface SegmentFilter {
+  contact_type?: ContactType
+  practice_areas?: string[]
+  pqe_min?: number
+  pqe_max?: number
+  candidate_status?: string
+  opted_in_purpose?: PermissionPurpose
+}
 
 export class NotAuthorisedError extends Error {}
 
@@ -56,7 +67,7 @@ export async function createMailingList(
 ): Promise<MailingList> {
   const { data, error } = await supabase
     .from('mailing_lists')
-    .insert({ name, purpose, description, dynamic_filter: dynamicFilter })
+    .insert({ name, purpose, description, dynamic_filter: dynamicFilter as unknown as Json })
     .select()
     .single()
   if (error) throw error
@@ -70,6 +81,35 @@ export async function syncMailingList(
   if (error) rethrow(error)
   const row = data?.[0]
   return { added: row?.added ?? 0, removed: row?.removed ?? 0, total_active: row?.total_active ?? 0 }
+}
+
+/** Live "how many people match" count for a filter — no side effects, nothing saved. */
+export async function fetchSegmentCount(filter: SegmentFilter): Promise<number> {
+  const { data, error } = await supabase.rpc('compute_segment_count', { p_filter: filter as unknown as Json })
+  if (error) rethrow(error)
+  return data ?? 0
+}
+
+/**
+ * The one-step path: filter, see a count, pick a template, send — no
+ * separate "name and save a list" step. Creates a mailing list and
+ * campaign behind the scenes (see migration 23) and returns the new
+ * campaign's id so the caller can go straight to its detail page.
+ */
+export async function createAdHocCampaign(
+  name: string,
+  purpose: PermissionPurpose,
+  templateId: string,
+  filter: SegmentFilter,
+): Promise<string> {
+  const { data, error } = await supabase.rpc('create_ad_hoc_campaign', {
+    p_name: name,
+    p_purpose: purpose,
+    p_template_id: templateId,
+    p_filter: filter as unknown as Json,
+  })
+  if (error) rethrow(error)
+  return data as string
 }
 
 // ---------------------------------------------------------------------

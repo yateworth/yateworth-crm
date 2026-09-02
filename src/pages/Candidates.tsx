@@ -6,18 +6,29 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   fetchCandidates,
   createCandidate,
+  setCandidateStage,
   primaryEmail,
   emptyCandidateForm,
+  CANDIDATE_STATUSES,
   type Candidate,
   type CandidateFormValues,
   type RecordStatus,
 } from '@/lib/candidates'
+
+const stageLabels: Record<string, string> = {
+  prospective: 'Prospective',
+  active: 'Active',
+  submitted: 'Submitted',
+  placed: 'Placed',
+  inactive: 'Inactive',
+}
 
 export function CandidatesPage() {
   const { profile } = useAuth()
   const canManage = profile?.role === 'admin' || profile?.role === 'recruiter'
 
   const [status, setStatus] = useState<RecordStatus>('active')
+  const [view, setView] = useState<'list' | 'board'>('list')
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -57,6 +68,15 @@ export function CandidatesPage() {
     }
   }
 
+  async function handleStageChange(personId: string, stage: (typeof CANDIDATE_STATUSES)[number]) {
+    try {
+      await setCandidateStage(personId, stage)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update this candidate’s stage.')
+    }
+  }
+
   return (
     <Layout>
       <div className="flex items-center justify-between">
@@ -70,6 +90,17 @@ export function CandidatesPage() {
                 className={`px-3 py-1 capitalize ${status === s ? 'bg-ox text-white' : 'text-sec'}`}
               >
                 {s}
+              </button>
+            ))}
+          </div>
+          <div className="flex rounded-md border border-ink/20 text-sm">
+            {(['list', 'board'] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1 capitalize ${view === v ? 'bg-ox text-white' : 'text-sec'}`}
+              >
+                {v}
               </button>
             ))}
           </div>
@@ -106,7 +137,7 @@ export function CandidatesPage() {
           <p className="text-sm text-sec">Loading…</p>
         ) : candidates.length === 0 ? (
           <p className="text-sm text-ink/40">No {status} candidates.</p>
-        ) : (
+        ) : view === 'list' ? (
           <div className="overflow-x-auto rounded-lg border border-ink/10 bg-paper">
             <table className="w-full text-sm">
               <thead className="border-b border-ink/10 text-left text-sec">
@@ -138,6 +169,53 @@ export function CandidatesPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="flex gap-4" style={{ minWidth: CANDIDATE_STATUSES.length * 220 }}>
+              {CANDIDATE_STATUSES.map((stage) => {
+                const stageCandidates = candidates.filter((c) => c.candidate_profiles?.candidate_status === stage)
+                return (
+                  <div key={stage} className="w-52 shrink-0">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-sec">
+                      {stageLabels[stage]} <span className="text-ink/40">({stageCandidates.length})</span>
+                    </h3>
+                    <div className="mt-2 space-y-2">
+                      {stageCandidates.map((c) => (
+                        <div key={c.id} className="rounded-lg border border-ink/10 bg-paper p-3">
+                          <Link to={`/candidates/${c.id}`} className="text-sm font-medium text-ink hover:underline">
+                            {c.first_name} {c.last_name}
+                          </Link>
+                          {c.candidate_profiles?.current_title && (
+                            <p className="text-xs text-sec">{c.candidate_profiles.current_title}</p>
+                          )}
+                          {c.candidate_profiles?.practice_areas && c.candidate_profiles.practice_areas.length > 0 && (
+                            <p className="mt-1 text-xs text-ink/40">
+                              {c.candidate_profiles.practice_areas.join(', ')}
+                            </p>
+                          )}
+                          {canManage && (
+                            <select
+                              value={stage}
+                              onChange={(e) =>
+                                handleStageChange(c.id, e.target.value as (typeof CANDIDATE_STATUSES)[number])
+                              }
+                              className="mt-2 w-full rounded border border-ink/20 bg-paper px-1.5 py-1 text-xs capitalize"
+                            >
+                              {CANDIDATE_STATUSES.map((s) => (
+                                <option key={s} value={s}>
+                                  {stageLabels[s]}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
       </div>

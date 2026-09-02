@@ -26,7 +26,7 @@ begin
   values (v_email_id, 'blog', 'opted_in', 'ongoing', 'test setup');
 
   insert into mailing_lists (name, purpose, dynamic_filter)
-  values ('Test blog subscribers', 'blog', jsonb_build_object('kind', 'opted_in', 'purpose', 'blog'))
+  values ('Test blog subscribers', 'blog', jsonb_build_object('opted_in_purpose', 'blog'))
   returning id into v_list_id;
 
   insert into email_templates (name, purpose, subject_template, html_template, text_template)
@@ -69,16 +69,17 @@ begin
     case when v_added = 0 and v_removed = 0 and v_total = 1 then 'PASS 2: re-sync is idempotent'
     else format('FAIL 2: added=%s removed=%s total=%s', v_added, v_removed, v_total) end);
 
-  -- 3. an unknown segment kind is rejected
+  -- 3. an invalid opted_in_purpose value is rejected (bad enum cast)
   v_seq := v_seq + 1;
   begin
-    update mailing_lists set dynamic_filter = jsonb_build_object('kind', 'not_a_real_kind') where id = v_list_id;
+    update mailing_lists set dynamic_filter = jsonb_build_object('opted_in_purpose', 'not_a_real_purpose')
+      where id = v_list_id;
     perform sync_mailing_list_members(v_list_id);
-    insert into test_results values (v_seq, 'FAIL 3: an unknown segment kind was accepted');
+    insert into test_results values (v_seq, 'FAIL 3: an invalid opted_in_purpose was accepted');
   exception when others then
-    insert into test_results values (v_seq, 'PASS 3: an unknown segment kind is rejected');
+    insert into test_results values (v_seq, 'PASS 3: an invalid opted_in_purpose is rejected');
   end;
-  update mailing_lists set dynamic_filter = jsonb_build_object('kind', 'opted_in', 'purpose', 'blog') where id = v_list_id;
+  update mailing_lists set dynamic_filter = jsonb_build_object('opted_in_purpose', 'blog') where id = v_list_id;
 
   -- 4. an unauthorised caller cannot sync a list
   perform set_config('request.jwt.claim.sub', '99999999-9999-9999-9999-999999999999', true);

@@ -500,6 +500,40 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
+- **Candidates got a kanban board** alongside the existing list view (a
+  List/Board toggle on `/candidates`) - columns per `candidate_status`
+  (prospective/active/submitted/placed/inactive), a stage-change select
+  on each card, matching the same pattern `JobDetail`'s pipeline board
+  already used for submissions.
+- **Marketing rebuilt around ad-hoc filtering instead of named lists**
+  (migration 23), directly on user feedback: "I don't want to manually
+  create lists, I want to basically be able to send an email based on
+  whether the candidate or firm contact or practice area and PQE -
+  like filterable." `select_segment_email_ids()` replaces migration 21's
+  three separate segment "kinds" with one compound filter (contact type -
+  candidate/firm contact/bare-email subscriber/any -, practice areas,
+  PQE range, candidate status, opted-in purpose, all AND-combined) built
+  once and shared by a live count function, list-sync, and a new
+  one-step `/marketing/compose` screen: filter, watch the recipient
+  count update, pick a template, and it creates the campaign - the
+  mailing list still exists underneath (campaigns need one, and it keeps
+  the approve/send machinery from the campaigns work above untouched)
+  but is never something the user has to name or manage directly.
+  `/marketing/lists` keeps a "smart list" option, built on the same
+  compound filter, for a segment worth saving and reusing rather than
+  rebuilding each time.
+  **A real regression found while migrating the tests**: the old
+  `opted_in` kind matched any email address with the right consent
+  regardless of whether it had a person record at all; the first version
+  of the compound filter accidentally required a `people` row to match
+  anything, which would have silently dropped the plain email-only
+  audience (subscribers who only ever came through the marketing site's
+  survey/report form - see `email_addresses.person_id` being nullable
+  by design in migration 3) from every future filter. `contact_type:
+  'subscriber'` restores that branch explicitly; the old test file's
+  assertions (still 8/8 passing) caught this the moment the new
+  behaviour was run against it, which is exactly why they were updated
+  and rerun rather than deleted along with the old filter shape.
 - **Gmail sync — in progress**, full plan in `docs/crm-functionality-plan.md`
   under "Gmail sync (separate initiative)". `gmail_connections` table is
   live: holds OAuth tokens, deliberately has zero policies for any client

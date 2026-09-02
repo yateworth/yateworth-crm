@@ -1540,6 +1540,16 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      compute_segment_count: { Args: { p_filter: Json }; Returns: number }
+      create_ad_hoc_campaign: {
+        Args: {
+          p_filter: Json
+          p_name: string
+          p_purpose: Database["public"]["Enums"]["permission_purpose"]
+          p_template_id: string
+        }
+        Returns: string
+      }
       create_candidate: {
         Args: {
           p_current_title?: string
@@ -1621,6 +1631,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      select_segment_email_ids: { Args: { p_filter: Json }; Returns: string[] }
       set_survey_status: {
         Args: { p_slug: string; p_status: string }
         Returns: undefined

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Layout } from '@/components/Layout'
 import { MarketingTabs } from '@/components/MarketingTabs'
+import { SegmentFilterFields, describeFilter } from '@/components/SegmentFilterFields'
 import {
   createMailingList,
   fetchMailingListMemberCount,
@@ -10,9 +11,6 @@ import {
   type PermissionPurpose,
   type SegmentFilter,
 } from '@/lib/campaigns'
-
-const CANDIDATE_STATUSES = ['prospective', 'active', 'submitted', 'placed', 'inactive']
-type SegmentKind = 'none' | SegmentFilter['kind']
 
 interface ListRow extends MailingList {
   memberCount: number | null
@@ -29,9 +27,8 @@ export function MailingListsPage() {
   const [name, setName] = useState('')
   const [purpose, setPurpose] = useState<PermissionPurpose>('blog')
   const [description, setDescription] = useState('')
-  const [segmentKind, setSegmentKind] = useState<SegmentKind>('none')
-  const [candidateStatus, setCandidateStatus] = useState(CANDIDATE_STATUSES[1])
-  const [practiceArea, setPracticeArea] = useState('')
+  const [isStatic, setIsStatic] = useState(true)
+  const [filter, setFilter] = useState<SegmentFilter>({})
 
   async function load() {
     setLoading(true)
@@ -51,26 +48,20 @@ export function MailingListsPage() {
     load()
   }, [])
 
-  function buildFilter(): SegmentFilter | null {
-    if (segmentKind === 'none') return null
-    if (segmentKind === 'opted_in') return { kind: 'opted_in', purpose }
-    if (segmentKind === 'candidate_status') return { kind: 'candidate_status', status: candidateStatus }
-    return { kind: 'practice_area', value: practiceArea.trim() }
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
     try {
-      const created = await createMailingList(name, purpose, description || null, buildFilter())
-      if (buildFilter()) {
+      const dynamicFilter = isStatic ? null : filter
+      const created = await createMailingList(name, purpose, description || null, dynamicFilter)
+      if (dynamicFilter) {
         await syncMailingList(created.id)
       }
       setName('')
       setDescription('')
-      setSegmentKind('none')
-      setPracticeArea('')
+      setIsStatic(true)
+      setFilter({})
       setShowForm(false)
       await load()
     } catch (err) {
@@ -156,62 +147,31 @@ export function MailingListsPage() {
             </div>
 
             <div>
-              <label htmlFor="list-membership" className="block text-sm font-medium text-sec">
-                Membership
-              </label>
-              <select
-                id="list-membership"
-                value={segmentKind}
-                onChange={(e) => setSegmentKind(e.target.value as SegmentKind)}
-                className="mt-1 w-full rounded-md border border-ink/20 bg-paper px-3 py-1.5 text-sm"
-              >
-                <option value="none">Static — add members manually</option>
-                <option value="opted_in">Everyone opted into {purpose}</option>
-                <option value="candidate_status">Candidates with a given status</option>
-                <option value="practice_area">Candidates in a practice area</option>
-              </select>
+              <span className="block text-sm font-medium text-sec">Membership</span>
+              <div className="mt-1 flex rounded-md border border-ink/20 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setIsStatic(true)}
+                  className={`flex-1 px-3 py-1.5 ${isStatic ? 'bg-ox text-white' : 'text-sec'}`}
+                >
+                  Static — add members manually
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsStatic(false)}
+                  className={`flex-1 px-3 py-1.5 ${!isStatic ? 'bg-ox text-white' : 'text-sec'}`}
+                >
+                  Smart — filter, and re-sync on demand
+                </button>
+              </div>
               <p className="mt-1 text-xs text-ink/40">
-                {segmentKind === 'none'
+                {isStatic
                   ? 'You add and remove members yourself; nothing here syncs automatically.'
-                  : 'Membership refreshes each time you click "Sync now" below — it never sends anything by itself.'}
+                  : 'Membership refreshes each time you click "Sync now" below — for a one-off send, Compose is faster.'}
               </p>
             </div>
 
-            {segmentKind === 'candidate_status' && (
-              <div>
-                <label htmlFor="list-candidate-status" className="block text-sm font-medium text-sec">
-                  Candidate status
-                </label>
-                <select
-                  id="list-candidate-status"
-                  value={candidateStatus}
-                  onChange={(e) => setCandidateStatus(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-ink/20 bg-paper px-3 py-1.5 text-sm"
-                >
-                  {CANDIDATE_STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {segmentKind === 'practice_area' && (
-              <div>
-                <label htmlFor="list-practice-area" className="block text-sm font-medium text-sec">
-                  Practice area
-                </label>
-                <input
-                  id="list-practice-area"
-                  required
-                  value={practiceArea}
-                  onChange={(e) => setPracticeArea(e.target.value)}
-                  placeholder="e.g. Banking & Finance"
-                  className="mt-1 w-full rounded-md border border-ink/20 px-3 py-1.5 text-sm"
-                />
-              </div>
-            )}
+            {!isStatic && <SegmentFilterFields filter={filter} onChange={setFilter} />}
 
             <button
               type="submit"
@@ -246,11 +206,7 @@ export function MailingListsPage() {
                   <tr key={list.id} className="border-b border-ink/5 last:border-0 hover:bg-ground">
                     <td className="p-3 font-medium text-ink">{list.name}</td>
                     <td className="p-3 text-sec">{list.purpose}</td>
-                    <td className="p-3 text-sec">
-                      {list.dynamic_filter
-                        ? `Segment: ${(list.dynamic_filter as SegmentFilter).kind}`
-                        : 'Static'}
-                    </td>
+                    <td className="p-3 text-sec">{describeFilter(list.dynamic_filter as SegmentFilter | null)}</td>
                     <td className="p-3 tabular-nums text-ink">{list.memberCount ?? '—'}</td>
                     <td className="p-3 text-right">
                       {list.dynamic_filter && (

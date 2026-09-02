@@ -8,6 +8,9 @@ const tabClass = ({ isActive }: { isActive: boolean }) =>
 export function MarketingTabs() {
   return (
     <nav className="flex items-center gap-6 border-b border-ink/10">
+      <NavLink to="/marketing/compose" className={tabClass}>
+        Compose
+      </NavLink>
       <NavLink to="/marketing/campaigns" className={tabClass}>
         Campaigns
       </NavLink>

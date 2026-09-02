@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { CandidateFormValues } from '@/lib/candidates'
+import { CANDIDATE_STATUSES, type CandidateFormValues } from '@/lib/candidates'
 import { fetchFirms, type Firm } from '@/lib/firms'
 
 interface Props {
@@ -7,8 +7,6 @@ interface Props {
   onChange: (values: CandidateFormValues) => void
   emailDisabled?: boolean
 }
-
-const CANDIDATE_STATUSES = ['prospective', 'active', 'submitted', 'placed', 'inactive']
 
 export function CandidateForm({ values, onChange, emailDisabled }: Props) {
   const [firms, setFirms] = useState<Firm[]>([])
