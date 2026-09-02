@@ -51,3 +51,8 @@ export function getEmailWebhookSecret() {
 export function getUnsubscribeTokenSecret() {
   return required('UNSUBSCRIBE_TOKEN_SECRET')
 }
+
+/** Lazily validated — only the quick-add note parser needs this. */
+export function getAnthropicEnv() {
+  return { apiKey: required('ANTHROPIC_API_KEY') }
+}

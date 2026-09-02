@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import { CountCard } from '@/components/CountCard'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   fetchDashboardSummary,
   fetchSurveyAggregateReport,
@@ -12,6 +13,7 @@ import {
 import { fetchMyDueTasks, setTaskStatus, type Task } from '@/lib/tasks'
 import { fetchSurveys, type SurveyListItem } from '@/lib/surveys'
 import { fetchInsightsDashboard, type InsightsDashboard } from '@/lib/insights'
+import { QuickAdd } from '@/components/QuickAdd'
 
 const SURVEY_SLUG = 'australian-legal-survey'
 
@@ -22,6 +24,8 @@ function timeAgo(iso: string | null): string {
 }
 
 export function DashboardPage() {
+  const { profile } = useAuth()
+  const canManage = profile?.role === 'admin' || profile?.role === 'recruiter'
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [survey, setSurvey] = useState<SurveyAggregateReport | null>(null)
   const [surveyMeta, setSurveyMeta] = useState<SurveyListItem | null>(null)
@@ -32,6 +36,10 @@ export function DashboardPage() {
 
   async function loadTasks() {
     setMyTasks(await fetchMyDueTasks())
+  }
+
+  async function refreshInsights() {
+    setInsights(await fetchInsightsDashboard().catch(() => null))
   }
 
   useEffect(() => {
@@ -85,6 +93,8 @@ export function DashboardPage() {
             {error}
           </div>
         )}
+
+        {canManage && <QuickAdd onDone={refreshInsights} />}
 
         {!loading && (
           <section>

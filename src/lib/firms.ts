@@ -149,8 +149,8 @@ export interface CreateFirmContactInput {
   isPrimary: boolean
 }
 
-export async function createFirmContact(firmId: string, input: CreateFirmContactInput): Promise<void> {
-  const { error } = await supabase.rpc('create_firm_contact', {
+export async function createFirmContact(firmId: string, input: CreateFirmContactInput): Promise<string> {
+  const { data, error } = await supabase.rpc('create_firm_contact', {
     p_firm_id: firmId,
     p_first_name: input.firstName,
     p_last_name: input.lastName,
@@ -160,6 +160,7 @@ export async function createFirmContact(firmId: string, input: CreateFirmContact
     p_is_primary: input.isPrimary,
   })
   if (error) throw error
+  return data
 }
 
 export async function removeFirmContact(id: string): Promise<void> {

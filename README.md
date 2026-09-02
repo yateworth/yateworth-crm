@@ -500,6 +500,25 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
+- **Quick add: natural-language data entry, backed by Claude** - a
+  "Quick add" box on the dashboard (admin/recruiter only). Type something
+  like "Had a call with Jane Doe at Smith & Co, 5 PQE corporate lawyer,
+  jane@example.com" and `netlify/functions/ai-parse-note.ts` sends it to
+  Claude (Haiku 4.5 - fast/cheap, plenty for structured extraction) with
+  create_candidate/create_firm_contact/log_activity available as tools;
+  firm and person names it mentions are resolved against existing
+  records server-side (not guessed by the model) before anything is
+  shown. The result is a preview card, never an immediate write - you
+  confirm before anything saves, per your explicit answer on that. On
+  confirm, the client executes through the exact same
+  createCandidate/createFirmContact/logActivity paths the manual forms
+  already use - parsing free text is the only new part; writing isn't.
+  **Needs `ANTHROPIC_API_KEY` set as a Netlify environment variable
+  before it will do anything** - same "only you can create this" step as
+  the Google Cloud key Gmail sync needs, at console.anthropic.com.
+  Disclosed scope: candidates, firm contacts and activity logs only -
+  not job creation from text, since a job's required fields (PQE range,
+  salary range) don't come through reliably in a spoken note.
 - **File storage on candidates, firms and jobs** (migration 26) - a
   private `attachments` Storage bucket plus a `file_attachments`
   metadata table (subject_type/subject_id polymorphic, matching the

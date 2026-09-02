@@ -119,8 +119,8 @@ function splitList(value: string): string[] {
     : []
 }
 
-export async function createCandidate(values: CandidateFormValues): Promise<void> {
-  const { error } = await supabase.rpc('create_candidate', {
+export async function createCandidate(values: CandidateFormValues): Promise<string> {
+  const { data, error } = await supabase.rpc('create_candidate', {
     p_first_name: values.firstName,
     p_last_name: values.lastName,
     p_email: values.email,
@@ -131,6 +131,7 @@ export async function createCandidate(values: CandidateFormValues): Promise<void
     p_years_pqe: values.yearsPqe ? Number(values.yearsPqe) : undefined,
   })
   if (error) throw error
+  return data
 }
 
 /**
