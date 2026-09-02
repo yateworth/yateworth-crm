@@ -500,6 +500,23 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
+- **Dashboard reworked around direct feedback**: "nothing is relevant"
+  about the Overview section (report requests/opt-ins/suppressions/
+  campaign+message status from `dashboard_summary()`) and the Surveys
+  card, so both are gone from the dashboard entirely - `CountCard`
+  deleted as fully dead code once that was its only caller;
+  `fetchDashboardSummary()` itself stays in `reporting.ts` (still
+  tested) since the underlying capability might still serve a dedicated
+  marketing report later, it just isn't surfaced here any more. New
+  "Recently added" section (candidates/firms/newsletter sign-ups) using
+  new `recent_blog_signups()` (migration 29 - a narrow admin/recruiter
+  read path onto `communication_preferences`, which stays admin-only
+  SELECT at the table level, matching the pattern `insights_dashboard()`
+  and `survey_aggregate_report()` already established) plus plain
+  `fetchRecentCandidates()`/`fetchRecentFirms()` queries. Every item on
+  the dashboard now links through to its record, including "My tasks"
+  (previously plain text - now links to the task's subject when it has
+  one).
 - **UX pass: bigger buttons, colour-coded status everywhere, a clearer
   nav** - direct feedback that navigation wasn't easy and status was
   hard to scan. New `--color-success` theme token (the brand palette is

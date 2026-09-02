@@ -1717,6 +1717,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      recent_blog_signups: {
+        Args: { p_limit?: number }
+        Returns: {
+          effective_at: string
+          email: string
+          email_address_id: string
+          person_id: string
+        }[]
+      }
       record_email_sent: {
         Args: {
           p_campaign_recipient_id: string

@@ -31,6 +31,17 @@ export async function fetchCandidates(status: RecordStatus): Promise<Candidate[]
   return data as unknown as Candidate[]
 }
 
+export async function fetchRecentCandidates(limit = 5): Promise<Candidate[]> {
+  const { data, error } = await supabase
+    .from('people')
+    .select(CANDIDATE_SELECT)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data as unknown as Candidate[]
+}
+
 export async function fetchCandidate(id: string): Promise<Candidate> {
   const { data, error } = await supabase
     .from('people')

@@ -35,3 +35,19 @@ export async function fetchInsightsDashboard(): Promise<InsightsDashboard | null
   }
   return data as unknown as InsightsDashboard
 }
+
+export interface BlogSignup {
+  email_address_id: string
+  email: string
+  person_id: string | null
+  effective_at: string
+}
+
+export async function fetchRecentBlogSignups(limit = 5): Promise<BlogSignup[]> {
+  const { data, error } = await supabase.rpc('recent_blog_signups', { p_limit: limit })
+  if (error) {
+    if (error.message.includes('not authorised')) return []
+    throw error
+  }
+  return data ?? []
+}

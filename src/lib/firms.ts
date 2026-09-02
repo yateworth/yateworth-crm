@@ -85,6 +85,17 @@ export async function fetchFirms(status: RecordStatus): Promise<Firm[]> {
   return data
 }
 
+export async function fetchRecentFirms(limit = 5): Promise<Firm[]> {
+  const { data, error } = await supabase
+    .from('firms')
+    .select('*')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data
+}
+
 export async function fetchFirm(id: string): Promise<Firm> {
   const { data, error } = await supabase.from('firms').select('*').eq('id', id).single()
   if (error) throw error
