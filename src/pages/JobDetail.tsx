@@ -94,6 +94,14 @@ export function JobDetailPage() {
   }
 
   useEffect(() => {
+    // React Router reuses this component instance across /jobs/:id
+    // navigations, so state from the previous job must be cleared
+    // explicitly - otherwise a selection or in-progress form for job A
+    // is still sitting there (and actionable) once job B has loaded.
+    setSelectedCandidateId('')
+    setEditing(false)
+    setRecordingFeeFor(null)
+    setFeeForm({ startDate: '', salary: '', feeAmount: '', guaranteeEndDate: '' })
     load()
   }, [id])
 
@@ -414,7 +422,10 @@ export function JobDetailPage() {
                             }
                             return (
                               <button
-                                onClick={() => setRecordingFeeFor(s.id)}
+                                onClick={() => {
+                                  setRecordingFeeFor(s.id)
+                                  setFeeForm({ startDate: '', salary: '', feeAmount: '', guaranteeEndDate: '' })
+                                }}
                                 className="text-xs text-ox hover:underline"
                               >
                                 Record fee →

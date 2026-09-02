@@ -149,6 +149,16 @@ const READ_TOOLS: Anthropic.Tool[] = [
 
 const READ_TOOL_NAMES = new Set(READ_TOOLS.map((t) => t.name))
 
+// PostgREST's .or() groups conditions with "(" ")" and separates them with
+// ",": splicing raw free text (a name the model extracted from the user's
+// message) in unescaped lets a comma or parenthesis in that text break out
+// of the intended group, either erroring the query or matching unintended
+// rows. None of these characters are meaningful in a person's name search,
+// so stripping them is safe rather than trying to escape them.
+function sanitizeForOrFilter(value: string): string {
+  return value.replace(/[,()\\]/g, '').trim()
+}
+
 const SYSTEM_PROMPT = `You are the assistant inside a legal recruitment CRM, talking with a recruiter or admin. You can:
 - Answer questions about candidates, firms, and what needs follow-up, using the search/get tools.
 - Propose adding a new candidate, a new firm contact, or logging an activity against an existing person, using the create_candidate/create_firm_contact/log_activity tools. These only propose — the recruiter confirms in the UI before anything saves.
@@ -170,7 +180,10 @@ async function executeReadTool(
       .select('id, first_name, last_name, candidate_profiles!inner(current_title, practice_areas, years_pqe, candidate_status, last_contacted_at)')
       .eq('status', 'active')
       .limit(10)
-    if (input.name) query = query.or(`first_name.ilike.%${input.name}%,last_name.ilike.%${input.name}%`)
+    if (input.name) {
+      const name = sanitizeForOrFilter(input.name as string)
+      query = query.or(`first_name.ilike.%${name}%,last_name.ilike.%${name}%`)
+    }
     if (input.status) query = query.eq('candidate_profiles.candidate_status', input.status as string)
     const { data, error } = await query
     if (error) return { error: error.message }
@@ -290,6 +303,15 @@ export default async (req: Request, _context: Context) => {
     messages.push({ role: 'user', content: toolResults })
   }
 
+  // Hitting the round cap while the model still only wants to read (or any
+  // other path that ends with no text and no proposed action) would return
+  // an empty response. The client replays the whole transcript as plain
+  // text next turn, and Anthropic's API rejects a message with empty
+  // content - poisoning the conversation until the page is reloaded.
+  if (!finalText && writeActions.length === 0) {
+    finalText = "I couldn't complete that — try asking again or rephrasing."
+  }
+
   return Response.json({ text: finalText, actions: writeActions })
 }
 
@@ -321,11 +343,13 @@ async function resolveWriteActions(
       }
       let targetMatch: { id: string; name: string } | null = null
 
+      const sanitizedTargetName = sanitizeForOrFilter(input.targetName)
+
       if (input.targetKind === 'candidate') {
         const { data } = await admin
           .from('people')
           .select('id, first_name, last_name, candidate_profiles!inner(person_id)')
-          .or(`first_name.ilike.%${input.targetName}%,last_name.ilike.%${input.targetName}%`)
+          .or(`first_name.ilike.%${sanitizedTargetName}%,last_name.ilike.%${sanitizedTargetName}%`)
           .limit(1)
           .maybeSingle()
         if (data) targetMatch = { id: data.id, name: `${data.first_name} ${data.last_name}` }
@@ -333,7 +357,7 @@ async function resolveWriteActions(
         const { data } = await admin
           .from('people')
           .select('id, first_name, last_name, firm_contacts!inner(person_id)')
-          .or(`first_name.ilike.%${input.targetName}%,last_name.ilike.%${input.targetName}%`)
+          .or(`first_name.ilike.%${sanitizedTargetName}%,last_name.ilike.%${sanitizedTargetName}%`)
           .limit(1)
           .maybeSingle()
         if (data) targetMatch = { id: data.id, name: `${data.first_name} ${data.last_name}` }

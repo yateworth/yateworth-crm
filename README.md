@@ -117,6 +117,109 @@ rewritten to check the row's actual content afterward instead. Every
 positive-path check (not just probing an unauthorised case) should be
 read with this in mind.
 
+## Full review, bugs found and fixed, mock data added (2026-09-03)
+
+A ground-up review of everything built so far — every SECURITY DEFINER
+function's grants, the AI assistant's request loop, the jobs pipeline UI,
+the campaigns UI — plus a realistic mock dataset (firms at every
+relationship stage, candidates at every status, jobs at every status
+including one deliberately stale and one deliberately unrecorded, a
+placement, activities, tasks, a campaign) inserted directly into the live
+database so the app has something real to click through, rather than an
+empty shell. Six real issues found; all fixed and re-tested.
+
+**1. A second, more subtle case of the same "PUBLIC grant" issue from
+Milestone 6, plus a related discovery this project hadn't hit before**:
+a systematic audit of `information_schema.routine_privileges` across
+every SECURITY DEFINER function turned up four more functions whose own
+code comments already claimed to be locked down but weren't —
+`apply_permission_preference` (no internal role check at all, relies
+entirely on its wrapper `submit_permission_request`, so direct access
+lets anyone forge an "opted in" consent record — **consent forgery**),
+`process_email_event` (the webhook-ingestion function; direct access
+lets anyone forge bounce/complaint/unsubscribe events for arbitrary
+message IDs — **webhook forgery**), `record_unsubscribe` (meant to be
+reached only via a signed, single-use token; direct access defeats that
+model entirely), and `can_send_email` (correctly grants `authenticated`
+by design, but had also leaked to `anon`). Fixing this exposed a second
+gap in the *fix itself*: revoking EXECUTE from `anon`/`authenticated`
+alone wasn't enough for `process_email_event` — it was still callable,
+because Postgres resolves privileges cumulatively, and the function
+still had an EXECUTE grant to `PUBLIC` (the implicit grant Postgres
+gives every new function). An explicit per-role revoke does not
+override a standing `PUBLIC` grant; `PUBLIC` itself has to be revoked
+too, same as the `select_segment_email_ids` fix in Milestone 6. All four
+fixed in `supabase/migrations/20260902000031_security_fixes.sql`
+(extended from its Milestone-6 version), and `supabase/tests/security_fixes.sql`
+now has 8 assertions — checking specifically for Postgres's
+`insufficient_privilege` (42501) error, not just "some exception was
+thrown," so a function rejecting a call for an unrelated reason can't
+read as a false pass. Confirmed the legitimate paths still work:
+`submit_permission_request` (the real, anonymous-safe entry point for
+consent) still reaches `apply_permission_preference` fine, and
+`can_send_email` still works for authenticated staff-UI eligibility
+previews. Two other SECURITY DEFINER functions with the same loose
+`PUBLIC` grant, `handle_new_auth_user` and `rls_auto_enable`, were
+checked and are not exploitable regardless — both are trigger functions
+(`RETURNS trigger` / `RETURNS event_trigger`), and Postgres refuses to
+call a trigger function outside actual trigger context.
+
+**2. The AI assistant (`netlify/functions/ai-chat.ts`) could return an
+empty response and then error out on the next message.** If the model
+still only wanted to call a read tool when the 4-round loop cap was hit
+(or, more generally, any path ending with no final text and no proposed
+action), the function returned `{ text: null, actions: [] }`. The client
+replays the whole conversation as plain text on the next turn (a
+deliberate simplification — see the comment at the top of the file), so
+that empty response became an empty-content message in the next request,
+which the Anthropic API rejects — poisoning the conversation until the
+page was reloaded. Fixed: falls back to a plain "I couldn't complete
+that — try asking again or rephrasing." whenever both `finalText` and
+`writeActions` end up empty.
+
+**3. The same file also spliced free text into PostgREST `.or()` filters
+unescaped**, in both the `search_candidates` read tool and the
+target-resolution lookups in `resolveWriteActions`. PostgREST's `.or()`
+groups conditions with `(` `)` and separates them with `,` — a comma or
+parenthesis in a name the model extracted from the user's message (or
+just pasted from a candidate's email signature) would break the query,
+either erroring or matching unintended rows. Fixed with a
+`sanitizeForOrFilter()` helper that strips those characters before they
+reach the filter string; harmless to strip since none of them are
+meaningful in a person's name search.
+
+**4. Two state bugs in `JobDetail.tsx`,** both from React Router reusing
+the same component instance across `/jobs/:id` navigations rather than
+remounting it: (a) `feeForm` (the inline fee-recording form added
+alongside the "record fee on the job" feature) was keyed only by
+`recordingFeeFor`, not cleared when it changed — opening a second
+submission's fee form while a first one was mid-entry, unsaved, carried
+the first submission's values into the second. Fixed by resetting
+`feeForm` in the same click handler that opens it. (b) Navigating from
+one job straight to another (via a link, not a full reload) left
+`selectedCandidateId`, `editing`, `recordingFeeFor` and `feeForm` from
+the previous job sitting in state — a stale candidate selection could
+have been added to the wrong job. Fixed by resetting all four in the
+effect keyed on the `id` route param, alongside the existing reload.
+
+**5. `CampaignDetail.tsx` showed a "suppressed" recipient count with no
+indication of why** — a real usability gap, found independently of the
+above while checking the marketing UI against the mock campaign.
+`campaign_recipients.suppression_reason` was captured at claim time
+(Milestone 4) but never surfaced. Added `fetchSuppressionBreakdown()` in
+`src/lib/campaigns.ts` (a direct, RLS-permitted read grouped by reason
+client-side) and a "Why recipients were suppressed" breakdown under the
+recipient counts.
+
+Verification: extended `supabase/tests/security_fixes.sql` as described
+above (8/8 passing); `npm run validate` (typecheck, lint, unit tests,
+build) clean. The AI-chat and job-detail fixes are Netlify-function and
+authenticated-route code respectively — neither is reachable from this
+session's own browser tools without your login, so those two are
+verified by code review and the type/build checks rather than a live
+click-through; worth you giving the assistant and a job's fee-recording
+flow a try next time you're in the app.
+
 ## Stack
 
 React + TypeScript + Vite + Tailwind, deployed to Netlify (static site +

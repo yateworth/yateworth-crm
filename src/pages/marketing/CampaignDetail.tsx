@@ -5,11 +5,13 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   approveCampaign,
   fetchCampaign,
+  fetchSuppressionBreakdown,
   previewCampaignRecipients,
   sendCampaignBatch,
   setCampaignStatus,
   type CampaignWithNames,
   type RecipientCounts,
+  type SuppressionReasonCount,
 } from '@/lib/campaigns'
 
 export function CampaignDetailPage() {
@@ -19,6 +21,7 @@ export function CampaignDetailPage() {
 
   const [campaign, setCampaign] = useState<CampaignWithNames | null>(null)
   const [counts, setCounts] = useState<RecipientCounts[]>([])
+  const [suppressionBreakdown, setSuppressionBreakdown] = useState<SuppressionReasonCount[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -27,12 +30,14 @@ export function CampaignDetailPage() {
   async function load() {
     if (!id) return
     try {
-      const [campaignResult, countsResult] = await Promise.all([
+      const [campaignResult, countsResult, suppressionResult] = await Promise.all([
         fetchCampaign(id),
         previewCampaignRecipients(id),
+        fetchSuppressionBreakdown(id),
       ])
       setCampaign(campaignResult)
       setCounts(countsResult)
+      setSuppressionBreakdown(suppressionResult)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load this campaign.')
@@ -113,6 +118,19 @@ export function CampaignDetailPage() {
                   ))}
                 </dl>
               )}
+              {suppressionBreakdown.length > 0 && (
+                <div className="mt-4 border-t border-ink/10 pt-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-ink/40">Why recipients were suppressed</h3>
+                  <dl className="mt-2 space-y-1">
+                    {suppressionBreakdown.map((s) => (
+                      <div key={s.reason} className="flex items-baseline justify-between text-sm">
+                        <dt className="text-sec">{s.reason}</dt>
+                        <dd className="font-medium tabular-nums text-ink">{s.count}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
             </div>
 
             {lastBatchMessage && (
@@ -124,7 +142,7 @@ export function CampaignDetailPage() {
             <div className="flex flex-wrap items-center gap-3">
               {campaign.status === 'draft' && (
                 <button
-                  onClick={() => run(() => previewCampaignRecipients(campaign.id).then(setCounts))}
+                  onClick={() => run(load)}
                   disabled={busy}
                   className="rounded-md border border-ink/20 px-3 py-1.5 text-sm text-sec hover:border-ox hover:text-ink disabled:opacity-50"
                 >

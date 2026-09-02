@@ -210,6 +210,31 @@ export async function previewCampaignRecipients(campaignId: string): Promise<Rec
   return data ?? []
 }
 
+export interface SuppressionReasonCount {
+  reason: string
+  count: number
+}
+
+// The per-status counts above collapse every suppressed recipient into a
+// single number with no indication of why - fetch the reasons separately
+// so a "suppressed: 12" isn't a mystery.
+export async function fetchSuppressionBreakdown(campaignId: string): Promise<SuppressionReasonCount[]> {
+  const { data, error } = await supabase
+    .from('campaign_recipients')
+    .select('suppression_reason')
+    .eq('campaign_id', campaignId)
+    .eq('status', 'suppressed')
+  if (error) throw error
+  const tally = new Map<string, number>()
+  for (const row of data ?? []) {
+    const reason = row.suppression_reason ?? 'unknown'
+    tally.set(reason, (tally.get(reason) ?? 0) + 1)
+  }
+  return [...tally.entries()]
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count)
+}
+
 export async function approveCampaign(campaignId: string): Promise<void> {
   const { error } = await supabase.rpc('approve_campaign', { p_campaign_id: campaignId })
   if (error) rethrow(error)
