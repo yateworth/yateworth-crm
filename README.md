@@ -451,6 +451,37 @@ npm run validate     # typecheck + lint + test + build, in order
   that used to be the only way to open the Legal Survey. The dashboard's
   survey section is now a one-line summary card linking into that page
   instead of the full inline breakdown.
+- **Campaigns finally have a screen, and a real approval gate they didn't
+  have before** (migration 21). The Milestone 4 campaign backend
+  (`generate_campaign_recipients`, `claim_campaign_batch`,
+  `record_email_sent`) existed since early in this project but was only
+  ever exercised via SQL/API calls — see `/marketing/lists`,
+  `/marketing/templates` and `/marketing/campaigns` for the screens that
+  now sit on top of it. Two things were found and fixed while building
+  this, not just UI added on top of what was already correct:
+  - `claim_campaign_batch` never checked a campaign's approval status —
+    the spec's own decision order ("Does the campaign itself remain
+    approved?") was silently unenforced, so anyone able to call the
+    function could drain a campaign's send queue whether or not it had
+    been approved. New `approve_campaign()` (admin-only) is now the only
+    way `approved_at`/`approved_by` get set, and `claim_campaign_batch`
+    refuses to claim anything until that's happened - both covered by
+    `supabase/tests/campaigns_management.sql`.
+  - `send-campaign-batch.ts` sent `email_templates.html_template`/
+    `text_template` completely raw - the signed-token unsubscribe
+    endpoint built back in Milestone 5 was live and tested, but nothing
+    in the actual send path ever linked to it. Every send now gets an
+    unsubscribe footer appended server-side
+    (`netlify/functions/_shared/emailFooter.ts`, unit-tested) - not a
+    merge tag a template author has to remember to paste in.
+  - New `sync_mailing_list_members()` populates a list from a
+    `dynamic_filter` (a schema column that existed since Milestone 4 but
+    nothing ever read). Three segment kinds for this pass, disclosed
+    scope: everyone opted into a purpose (blog/recruitment/report),
+    candidates by status, candidates by practice area. A real
+    arbitrary-condition segment builder is a lot more machinery than
+    three list types need right now; a fourth kind is a small addition
+    to the same function later, not a rewrite.
 - **Gmail sync — in progress**, full plan in `docs/crm-functionality-plan.md`
   under "Gmail sync (separate initiative)". `gmail_connections` table is
   live: holds OAuth tokens, deliberately has zero policies for any client

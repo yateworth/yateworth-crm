@@ -1432,6 +1432,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      approve_campaign: { Args: { p_campaign_id: string }; Returns: undefined }
       can_send_email: {
         Args: {
           p_email_address_id: string
@@ -1573,6 +1574,14 @@ export type Database = {
       survey_aggregate_report: {
         Args: { p_min_cohort?: number; p_slug: string }
         Returns: Json
+      }
+      sync_mailing_list_members: {
+        Args: { p_list_id: string }
+        Returns: {
+          added: number
+          removed: number
+          total_active: number
+        }[]
       }
     }
     Enums: {

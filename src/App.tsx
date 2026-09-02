@@ -11,6 +11,10 @@ import { JobsPage } from '@/pages/Jobs'
 import { JobDetailPage } from '@/pages/JobDetail'
 import { SurveysPage } from '@/pages/Surveys'
 import { SurveyDetailPage } from '@/pages/SurveyDetail'
+import { MailingListsPage } from '@/pages/marketing/MailingLists'
+import { EmailTemplatesPage } from '@/pages/marketing/EmailTemplates'
+import { CampaignsPage } from '@/pages/marketing/Campaigns'
+import { CampaignDetailPage } from '@/pages/marketing/CampaignDetail'
 
 export default function App() {
   return (
@@ -87,6 +91,38 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <SurveyDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/marketing/campaigns"
+            element={
+              <ProtectedRoute>
+                <CampaignsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/marketing/campaigns/:id"
+            element={
+              <ProtectedRoute>
+                <CampaignDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/marketing/lists"
+            element={
+              <ProtectedRoute>
+                <MailingListsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/marketing/templates"
+            element={
+              <ProtectedRoute>
+                <EmailTemplatesPage />
               </ProtectedRoute>
             }
           />

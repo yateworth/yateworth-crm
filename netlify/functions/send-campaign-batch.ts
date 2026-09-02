@@ -1,7 +1,9 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSupabaseAdmin } from './_shared/supabaseAdmin'
 import { createFakeEmailProvider } from './_shared/emailProvider'
-import { getEmailWebhookSecret } from './_shared/env'
+import { getEmailWebhookSecret, getUnsubscribeTokenSecret } from './_shared/env'
+import { signUnsubscribeToken } from './_shared/unsubscribeToken'
+import { appendUnsubscribeFooter, unsubscribeScopeForPurpose } from './_shared/emailFooter'
 
 /**
  * Claims a batch of pending recipients for a campaign, "sends" each one
@@ -54,12 +56,18 @@ export default async (req: Request, _context: Context) => {
 
   const { data: campaign, error: campaignError } = await admin
     .from('campaigns')
-    .select('id, template_id')
+    .select('id, template_id, purpose')
     .eq('id', body.campaignId)
     .single()
   if (campaignError || !campaign) {
     return Response.json({ error: 'Campaign not found' }, { status: 404 })
   }
+
+  const siteUrl = process.env.URL ?? process.env.DEPLOY_PRIME_URL
+  if (!siteUrl) {
+    return Response.json({ error: 'Site URL not configured (missing Netlify URL env)' }, { status: 500 })
+  }
+  const unsubscribeScope = unsubscribeScopeForPurpose(campaign.purpose)
 
   const { data: template, error: templateError } = await admin
     .from('email_templates')
@@ -84,11 +92,17 @@ export default async (req: Request, _context: Context) => {
 
   for (const recipient of claimed ?? []) {
     try {
+      const unsubscribeUrl = `${siteUrl}/api/unsubscribe?token=${signUnsubscribeToken(recipient.email_address_id, getUnsubscribeTokenSecret())}&scope=${unsubscribeScope}`
+      const { html, text } = appendUnsubscribeFooter(
+        template.html_template,
+        template.text_template,
+        unsubscribeUrl,
+      )
       const result = await provider.send({
         to: recipient.email_snapshot,
         subject: template.subject_template,
-        html: template.html_template,
-        text: template.text_template,
+        html,
+        text,
       })
       const { error: recordError } = await admin.rpc('record_email_sent', {
         p_campaign_recipient_id: recipient.id,

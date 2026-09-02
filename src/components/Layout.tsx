@@ -34,6 +34,9 @@ export function Layout({ children }: { children: ReactNode }) {
             <NavLink to="/surveys" className={navLinkClass}>
               Surveys
             </NavLink>
+            <NavLink to="/marketing/campaigns" className={navLinkClass}>
+              Marketing
+            </NavLink>
           </nav>
           <div className="ml-auto flex items-center gap-4">
             <span className="text-sm text-ground/70">
