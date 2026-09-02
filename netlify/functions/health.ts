@@ -9,7 +9,7 @@ import { getServerEnv } from './_shared/env'
 export default async (_req: Request, _context: Context) => {
   try {
     getServerEnv()
-    return Response.json({ ok: true })
+    return Response.json({ ok: true, commit: process.env.COMMIT_REF ?? 'unknown' })
   } catch (error) {
     return Response.json(
       { ok: false, error: error instanceof Error ? error.message : 'Unknown error' },
