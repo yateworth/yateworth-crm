@@ -79,6 +79,44 @@ exactly one real user (you) for its entire existence, so the realistic
 exposure window was effectively nil — but the bug was real regardless of
 whether anyone hit it.
 
+## A testing gap, found and fixed (2026-09-02, while building Stage 2)
+
+Every `supabase/tests/*.sql` file in this repo runs via
+`scripts/run-remote-sql.cjs`, which authenticates to the Supabase
+Management API with a personal access token. That connection executes as
+Postgres role `postgres` — which has `rolbypassrls = true`. Verified live:
+
+```sql
+select rolbypassrls from pg_roles where rolname = current_user; -- true, as postgres
+```
+
+That means every test that exercised a **SECURITY DEFINER function**
+(`can_send_email`, `claim_campaign_batch`, `record_unsubscribe`, all of
+Milestones 2-6, `create_candidate`) was still testing something real —
+those functions' `current_app_role()` checks are plain SQL conditionals
+reading a JWT claim, correct regardless of which role calls them. But
+**no test had ever verified an actual RLS table policy** — and Stage 1's
+Candidates/Firms screens (and now Stage 2's activities/tasks) read and
+write `firms`/`people`/`candidate_profiles`/`email_addresses`/
+`activities`/`tasks` directly from the client, with no function in
+between. Their correctness depended entirely on RLS policies nothing had
+verified.
+
+Fix: `supabase/tests/direct_table_rls.sql` starts with `set local role
+authenticated`, which actually drops the bypass (`rolbypassrls = false`
+as `authenticated`) — a real regression test, not just a plausible-looking
+one. It confirms a caller with no active profile row sees zero rows and
+cannot insert into any of the six tables above. All 9 assertions pass.
+
+A second, smaller bug this surfaced: an RLS-blocked `UPDATE` affects zero
+rows *silently* — it does not raise an exception. An early version of
+the `activities`-is-append-only test used `exception when others` to
+detect a blocked update, which never fires for this failure mode; it was
+rewritten to check the row's actual content afterward instead. Every
+`*.sql` test file that does a direct-table write for a genuine
+positive-path check (not just probing an unauthorised case) should be
+read with this in mind.
+
 ## Stack
 
 React + TypeScript + Vite + Tailwind, deployed to Netlify (static site +
@@ -127,13 +165,17 @@ tokens (`--ink`, `--ox`, `--brass`, `--sec`, etc. from `my-site/index.html`'s
   `record_email_sent()`), unsubscribe/bounce processing
   (`record_unsubscribe()`, `process_email_event()`), report delivery and
   reporting (`claim_report_batch()`, `record_report_delivered()`,
-  `survey_aggregate_report()`, `dashboard_summary()`), and the role-check
-  security fix (see above).
+  `survey_aggregate_report()`, `dashboard_summary()`), the role-check
+  security fix (see above), `create_candidate()`, and `activities`/`tasks`
+  (append-only activities, assignable/completable tasks).
 - `supabase/seed/seed.sql` — fictional firms/people/candidates only.
 - `supabase/tests/permission_ledger.sql`, `supabase/tests/anonymous_survey.sql`,
   `supabase/tests/campaigns.sql`, `supabase/tests/unsubscribe_and_bounces.sql`,
   `supabase/tests/report_delivery_and_reporting.sql`,
-  `supabase/tests/role_check_regression.sql` — SQL assertions run against
+  `supabase/tests/role_check_regression.sql`,
+  `supabase/tests/create_candidate.sql`,
+  `supabase/tests/activities_and_tasks.sql`,
+  `supabase/tests/direct_table_rls.sql` — SQL assertions run against
   the real database (see "Testing against the live database" below),
   including a schema-level proof that `survey_responses`/`survey_answers`
   carry no identity column and `report_requests` carries no
@@ -289,6 +331,16 @@ npm run db:test -- supabase/tests/permission_ledger.sql
 Any line in the output starting `FAIL` means an assertion didn't hold;
 the script also exits non-zero in that case.
 
+**Read "A testing gap, found and fixed" above before writing a new test
+file.** The Management API connection runs as `postgres`, which bypasses
+RLS entirely. Testing a SECURITY DEFINER function's internal logic is
+unaffected by this. Testing an actual RLS table policy is not — start
+the transaction with `set local role authenticated` (see
+`supabase/tests/direct_table_rls.sql`), and remember that an RLS-blocked
+`UPDATE` fails *silently* (zero rows affected, no exception), so check
+the row's content afterward rather than wrapping it in a `begin/exception`
+block.
+
 ## Local Postgres (optional, needs Docker)
 
 `supabase/config.toml` is set up for `npx supabase start`, which runs a
@@ -363,11 +415,23 @@ npm run validate     # typecheck + lint + test + build, in order
   creating a duplicate person — see the comment in migration 16 for what
   stays out of scope (real duplicate/near-match detection across
   non-identical records is an explicit Phase 2 deliverable in the spec).
+- **Stage 2 (activities, notes, tasks)** — done. `activities`
+  (append-only — no client role, not even the author, can update or
+  delete one after it's logged) and `tasks` tables, both fully specified
+  in the original spec but never migrated until now. Every
+  candidate/firm detail page has an activity feed (log a call/email/note)
+  and a task list (create, assign to self, mark done) scoped to that
+  record. The dashboard's new "My tasks" card shows what's due today or
+  overdue for the signed-in user — one of the spec's own dashboard items
+  (section 12) that didn't exist before this.
+- **Real testing-methodology gap found and fixed while building Stage 2**:
+  see "A testing gap, found and fixed" below before trusting any RLS
+  claim in this README for tables written to directly from the client
+  (as opposed to through a function).
 - **Plan for the rest of "make this a real CRM"** is in
-  `docs/crm-functionality-plan.md`: activity/notes/tasks
-  next (Stage 2), then jobs + a candidate pipeline (Stage 3), then making
-  the survey section its own clickable page instead of a dashboard widget
-  (Stage 4).
+  `docs/crm-functionality-plan.md`: jobs + a candidate pipeline next
+  (Stage 3), then making the survey section its own clickable page
+  instead of a dashboard widget (Stage 4).
 - **Phase 2 remaining**: jobs, submissions, matching, Apollo promotion,
   duplicate/near-match detection.
 - **Phase 3**: interviews, offers, placements, fee tracking.

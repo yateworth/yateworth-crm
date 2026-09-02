@@ -2,6 +2,8 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import { CandidateForm } from '@/components/CandidateForm'
+import { ActivityFeed } from '@/components/ActivityFeed'
+import { TaskList } from '@/components/TaskList'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   fetchCandidate,
@@ -254,6 +256,15 @@ export function CandidateDetailPage() {
             </Section>
           </div>
         )}
+      </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-6">
+        <div className="rounded-lg border border-ink/10 bg-paper p-5">
+          <TaskList subjectType="people" subjectId={candidate.id} />
+        </div>
+        <div className="rounded-lg border border-ink/10 bg-paper p-5">
+          <ActivityFeed subjectType="people" subjectId={candidate.id} />
+        </div>
       </div>
     </Layout>
   )

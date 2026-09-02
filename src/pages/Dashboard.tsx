@@ -8,27 +8,35 @@ import {
   type DashboardSummary,
   type SurveyAggregateReport,
 } from '@/lib/reporting'
+import { fetchMyDueTasks, setTaskStatus, type Task } from '@/lib/tasks'
 
 const SURVEY_SLUG = 'australian-legal-survey'
 
 export function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [survey, setSurvey] = useState<SurveyAggregateReport | null>(null)
+  const [myTasks, setMyTasks] = useState<Task[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+
+  async function loadTasks() {
+    setMyTasks(await fetchMyDueTasks())
+  }
 
   useEffect(() => {
     let cancelled = false
 
     async function load() {
       try {
-        const [summaryResult, surveyResult] = await Promise.all([
+        const [summaryResult, surveyResult, tasksResult] = await Promise.all([
           fetchDashboardSummary(),
           fetchSurveyAggregateReport(SURVEY_SLUG),
+          fetchMyDueTasks(),
         ])
         if (cancelled) return
         setSummary(summaryResult)
         setSurvey(surveyResult)
+        setMyTasks(tasksResult)
       } catch (err) {
         if (cancelled) return
         setError(
@@ -47,6 +55,11 @@ export function DashboardPage() {
     }
   }, [])
 
+  async function completeTask(id: string) {
+    await setTaskStatus(id, 'completed')
+    await loadTasks()
+  }
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -56,6 +69,37 @@ export function DashboardPage() {
           <div className="rounded-lg border border-brass/40 bg-brass/10 p-4 text-sm text-ink">
             {error}
           </div>
+        )}
+
+        {!loading && (
+          <section>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-sec">
+              My tasks (due today or overdue)
+            </h2>
+            <div className="mt-3 rounded-lg border border-ink/10 bg-paper p-5">
+              {myTasks.length === 0 ? (
+                <p className="text-sm text-ink/40">Nothing due — you're on top of it.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {myTasks.map((task) => (
+                    <li key={task.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        onChange={() => completeTask(task.id)}
+                        className="h-4 w-4 accent-ox"
+                      />
+                      <span className="text-ink">{task.title}</span>
+                      {task.due_at && (
+                        <span className="ml-auto text-xs text-ink/40">
+                          due {new Date(task.due_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
         )}
 
         {summary && (

@@ -39,6 +39,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          activity_type: string
+          body: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          metadata: Json
+          occurred_at: string
+          subject_id: string
+          subject_type: string
+        }
+        Insert: {
+          activity_type: string
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          subject_id: string
+          subject_type: string
+        }
+        Update: {
+          activity_type?: string
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          subject_id?: string
+          subject_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           actor_user_id: string | null
@@ -1106,6 +1150,66 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_at: string | null
+          id: string
+          status: Database["public"]["Enums"]["task_status"]
+          subject_id: string | null
+          subject_type: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["task_status"]
+          subject_id?: string | null
+          subject_type?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["task_status"]
+          subject_id?: string | null
+          subject_type?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1296,6 +1400,7 @@ export type Database = {
         | "report"
         | "blog"
         | "recruitment"
+      task_status: "open" | "completed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1466,6 +1571,7 @@ export const Constants = {
         "blog",
         "recruitment",
       ],
+      task_status: ["open", "completed", "cancelled"],
     },
   },
 } as const
