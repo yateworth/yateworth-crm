@@ -32,9 +32,11 @@ Built per `docs/Recruitment_CRM_Build_Specification.md`, in gated phases.
   identity rather than a raw token — see the note at the top of
   migration 12.
 
-Connected to a real (free-tier) Supabase project. Not connected yet:
-Netlify (as a deployed site — the functions exist but aren't hosted
-anywhere), Apollo, or a real email provider.
+**Live at [yateworth-crm.netlify.app](https://yateworth-crm.netlify.app)**
+— deployed via the Netlify CLI (not yet connected to auto-deploy on
+`git push`; see "Continuous deployment" below). Connected to a real
+(free-tier) Supabase project. Not connected yet: Apollo, or a real email
+provider.
 
 ## Stack
 
@@ -147,16 +149,44 @@ npm run dev
 
 Sign in at `/login` with the account you created above.
 
-### 5. Deploy (when ready)
+### 5. Deploy
 
-Connect this repo to [Netlify](https://netlify.com) (free tier). In
-**Site settings → Environment variables**, set every variable from
-`.env.example` — the `VITE_` ones plus the server-only ones
-(`SUPABASE_SERVICE_ROLE_KEY`, `APOLLO_API_KEY`, etc., as those integrations
-get built in later phases). Netlify builds and deploys automatically on
-every push to `main`, the same way GitHub Pages did for the marketing
-site — the difference is Netlify also runs `netlify/functions/*` as
-serverless endpoints and keeps the secret env vars server-side.
+Already done — see "Continuous deployment" below for the one remaining
+manual step (linking to GitHub for auto-deploy on push). To redeploy
+manually in the meantime:
+
+```bash
+npm run build
+npx netlify-cli@17 deploy --prod --dir=dist --functions=netlify/functions
+```
+
+(Needs `NETLIFY_AUTH_TOKEN` set, or `netlify login` run once interactively.)
+
+## Continuous deployment
+
+The site (`yateworth-crm.netlify.app`) and all its environment variables
+were created via the Netlify CLI, using a personal access token — same
+pattern as the Supabase setup. One thing the CLI can't do non-interactively:
+linking the site to this GitHub repo for auto-deploy on push, since that
+requires an OAuth grant only you can click through. To finish that:
+
+1. [Site overview → Project configuration → Build & deploy → Continuous deployment](https://app.netlify.com/projects/yateworth-crm)
+2. **Link repository** → choose GitHub → authorize Netlify if prompted →
+   select `yateworth/yateworth-crm`, branch `main`
+3. Confirm build command `npm run build`, publish directory `dist`,
+   functions directory `netlify/functions` (all already set via
+   `netlify.toml` — Netlify should detect these automatically)
+
+Until that's done, deploys only happen when someone runs the manual
+`netlify deploy --prod` command above.
+
+**Also worth knowing:** the site was created with Netlify's account-wide
+"Team protection" (SSO-gated visitor access) on by default, which I
+turned off for this site specifically — it would have blocked the public
+survey/unsubscribe/webhook endpoints along with everything else. If you
+ever want visitor-level access control back (e.g. before real data flows
+through it), that's a deliberate choice to make explicitly, not something
+to leave on by an account default.
 
 ## Wiring up the live site
 
