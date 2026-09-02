@@ -87,8 +87,13 @@ Level Security).
 
 ## What exists right now
 
-- `src/` — the app shell: Supabase browser client, auth context, a login
-  page, a protected dashboard route.
+- `src/` — Supabase browser client, auth context, a login page, and a
+  protected dashboard that shows real operational data
+  (`lib/reporting.ts` wraps `dashboard_summary()`/`survey_aggregate_report()`).
+  `types/database.ts` is now machine-generated from the live schema
+  (`npx supabase gen types typescript --project-id <ref>`) rather than
+  hand-maintained — the file says so at the top; the `AppRole` alias at
+  the bottom is the one hand-authored part, re-add it after regenerating.
 - `netlify/functions/` — the pattern for server-side code (secrets never
   reach the browser). `health.ts` confirms env vars are set;
   `send-campaign-batch.ts` claims and "sends" a campaign batch through
@@ -325,11 +330,17 @@ npm run validate     # typecheck + lint + test + build, in order
 ## What's still ahead (see the spec for full detail)
 
 - **Phase 1 remaining**: Apollo staging, CSV import/export.
-- **No admin UI yet** for anything built in Milestones 2-6 (campaigns,
-  reporting, unsubscribe management) — these exist as tested database
-  functions and Netlify endpoints, callable via `supabase.rpc(...)`, but
-  there's no screen in `src/` to click through them yet. The dashboard
-  page still just shows who's signed in.
+- **Dashboard now shows real data**: report requests/opt-ins/active
+  suppressions/campaign+message status (from `dashboard_summary()`), and
+  a per-question breakdown of the Legal Survey (from
+  `survey_aggregate_report()`) with the suppression threshold visibly
+  applied. Admin/marketing only — a recruiter/viewer sees a plain
+  "not available to your role" message instead of an error.
+- **Still no UI** for actually *doing* anything with campaigns,
+  suppressions or report delivery (creating a campaign, lifting a
+  suppression, triggering `send-campaign-batch`) — the dashboard is
+  read-only so far. Those functions all exist and are tested, just not
+  wired to a screen yet.
 - **Phase 2**: full candidate/firm/job CRM, matching, Apollo promotion,
   duplicate detection.
 - **Phase 3**: submissions, interviews, offers, placements, fee tracking.

@@ -1,41 +1,1466 @@
-/**
- * Hand-authored placeholder matching the Phase 0 migration.
- *
- * Once a Supabase project exists, regenerate this file from the real schema
- * and replace this file entirely:
- *
- *   npx supabase gen types typescript --project-id <ref> > src/types/database.ts
- */
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
-export type AppRole = 'admin' | 'recruiter' | 'marketing' | 'viewer'
-
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      profiles: {
+      audit_log: {
         Row: {
+          actor_user_id: string | null
           id: string
-          full_name: string
-          role: AppRole
-          active: boolean
+          new_values: Json | null
+          occurred_at: string
+          old_values: Json | null
+          operation: string
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          id?: string
+          new_values?: Json | null
+          occurred_at?: string
+          old_values?: Json | null
+          operation: string
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          id?: string
+          new_values?: Json | null
+          occurred_at?: string
+          old_values?: Json | null
+          operation?: string
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_recipients: {
+        Row: {
+          campaign_id: string
           created_at: string
+          eligibility_snapshot: Json
+          email_address_id: string
+          email_snapshot: string
+          id: string
+          merge_data: Json
+          status: Database["public"]["Enums"]["recipient_status"]
+          suppression_reason: string | null
           updated_at: string
         }
         Insert: {
-          id: string
-          full_name: string
-          role?: AppRole
-          active?: boolean
+          campaign_id: string
+          created_at?: string
+          eligibility_snapshot?: Json
+          email_address_id: string
+          email_snapshot: string
+          id?: string
+          merge_data?: Json
+          status?: Database["public"]["Enums"]["recipient_status"]
+          suppression_reason?: string | null
+          updated_at?: string
         }
         Update: {
-          full_name?: string
-          role?: AppRole
+          campaign_id?: string
+          created_at?: string
+          eligibility_snapshot?: Json
+          email_address_id?: string
+          email_snapshot?: string
+          id?: string
+          merge_data?: Json
+          status?: Database["public"]["Enums"]["recipient_status"]
+          suppression_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_recipients_email_address_id_fkey"
+            columns: ["email_address_id"]
+            isOneToOne: false
+            referencedRelation: "email_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          list_id: string | null
+          name: string
+          provider: string | null
+          provider_campaign_id: string | null
+          purpose: Database["public"]["Enums"]["permission_purpose"]
+          scheduled_at: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          template_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          list_id?: string | null
+          name: string
+          provider?: string | null
+          provider_campaign_id?: string | null
+          purpose: Database["public"]["Enums"]["permission_purpose"]
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"]
+          template_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          list_id?: string | null
+          name?: string
+          provider?: string | null
+          provider_campaign_id?: string | null
+          purpose?: Database["public"]["Enums"]["permission_purpose"]
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"]
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "mailing_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_profiles: {
+        Row: {
+          admission_jurisdictions: string[]
+          availability_date: string | null
+          candidate_status: string
+          created_at: string
+          current_firm_id: string | null
+          current_title: string | null
+          cv_storage_path: string | null
+          desired_locations: string[]
+          last_contacted_at: string | null
+          person_id: string
+          practice_areas: string[]
+          privacy_notice_at: string | null
+          salary_current: number | null
+          salary_expected: number | null
+          updated_at: string
+          work_preferences: string[]
+          years_pqe: number | null
+        }
+        Insert: {
+          admission_jurisdictions?: string[]
+          availability_date?: string | null
+          candidate_status?: string
+          created_at?: string
+          current_firm_id?: string | null
+          current_title?: string | null
+          cv_storage_path?: string | null
+          desired_locations?: string[]
+          last_contacted_at?: string | null
+          person_id: string
+          practice_areas?: string[]
+          privacy_notice_at?: string | null
+          salary_current?: number | null
+          salary_expected?: number | null
+          updated_at?: string
+          work_preferences?: string[]
+          years_pqe?: number | null
+        }
+        Update: {
+          admission_jurisdictions?: string[]
+          availability_date?: string | null
+          candidate_status?: string
+          created_at?: string
+          current_firm_id?: string | null
+          current_title?: string | null
+          cv_storage_path?: string | null
+          desired_locations?: string[]
+          last_contacted_at?: string | null
+          person_id?: string
+          practice_areas?: string[]
+          privacy_notice_at?: string | null
+          salary_current?: number | null
+          salary_expected?: number | null
+          updated_at?: string
+          work_preferences?: string[]
+          years_pqe?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_profiles_current_firm_id_fkey"
+            columns: ["current_firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_profiles_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_preferences: {
+        Row: {
+          effective_at: string
+          email_address_id: string
+          evidence: Json
+          expires_at: string | null
+          fulfilled_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["permission_kind"]
+          lawful_basis: string | null
+          purpose: Database["public"]["Enums"]["permission_purpose"]
+          source: string | null
+          status: Database["public"]["Enums"]["preference_status"]
+          updated_at: string
+        }
+        Insert: {
+          effective_at?: string
+          email_address_id: string
+          evidence?: Json
+          expires_at?: string | null
+          fulfilled_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["permission_kind"]
+          lawful_basis?: string | null
+          purpose: Database["public"]["Enums"]["permission_purpose"]
+          source?: string | null
+          status?: Database["public"]["Enums"]["preference_status"]
+          updated_at?: string
+        }
+        Update: {
+          effective_at?: string
+          email_address_id?: string
+          evidence?: Json
+          expires_at?: string | null
+          fulfilled_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["permission_kind"]
+          lawful_basis?: string | null
+          purpose?: Database["public"]["Enums"]["permission_purpose"]
+          source?: string | null
+          status?: Database["public"]["Enums"]["preference_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_preferences_email_address_id_fkey"
+            columns: ["email_address_id"]
+            isOneToOne: false
+            referencedRelation: "email_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consent_events: {
+        Row: {
+          actor_user_id: string | null
+          email_address_id: string
+          event_type: string
+          evidence: Json
+          id: string
+          new_status: Database["public"]["Enums"]["preference_status"] | null
+          occurred_at: string
+          previous_status:
+            | Database["public"]["Enums"]["preference_status"]
+            | null
+          purpose: Database["public"]["Enums"]["permission_purpose"] | null
+          source: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          email_address_id: string
+          event_type: string
+          evidence?: Json
+          id?: string
+          new_status?: Database["public"]["Enums"]["preference_status"] | null
+          occurred_at?: string
+          previous_status?:
+            | Database["public"]["Enums"]["preference_status"]
+            | null
+          purpose?: Database["public"]["Enums"]["permission_purpose"] | null
+          source: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          email_address_id?: string
+          event_type?: string
+          evidence?: Json
+          id?: string
+          new_status?: Database["public"]["Enums"]["preference_status"] | null
+          occurred_at?: string
+          previous_status?:
+            | Database["public"]["Enums"]["preference_status"]
+            | null
+          purpose?: Database["public"]["Enums"]["permission_purpose"] | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consent_events_email_address_id_fkey"
+            columns: ["email_address_id"]
+            isOneToOne: false
+            referencedRelation: "email_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_addresses: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_primary: boolean
+          last_verified_at: string | null
+          person_id: string | null
+          verification_status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_primary?: boolean
+          last_verified_at?: string | null
+          person_id?: string | null
+          verification_status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_primary?: boolean
+          last_verified_at?: string | null
+          person_id?: string | null
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_addresses_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_events: {
+        Row: {
+          email_message_id: string | null
+          event_type: string
+          id: string
+          occurred_at: string
+          payload: Json
+          provider: string
+          provider_event_id: string
+          received_at: string
+        }
+        Insert: {
+          email_message_id?: string | null
+          event_type: string
+          id?: string
+          occurred_at: string
+          payload?: Json
+          provider: string
+          provider_event_id: string
+          received_at?: string
+        }
+        Update: {
+          email_message_id?: string | null
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          provider?: string
+          provider_event_id?: string
+          received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_email_message_id_fkey"
+            columns: ["email_message_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_messages: {
+        Row: {
+          campaign_recipient_id: string | null
+          created_at: string
+          email_address_id: string
+          id: string
+          provider: string
+          provider_message_id: string | null
+          purpose: Database["public"]["Enums"]["permission_purpose"]
+          sent_at: string | null
+          status: Database["public"]["Enums"]["recipient_status"]
+          subject_snapshot: string
+        }
+        Insert: {
+          campaign_recipient_id?: string | null
+          created_at?: string
+          email_address_id: string
+          id?: string
+          provider: string
+          provider_message_id?: string | null
+          purpose: Database["public"]["Enums"]["permission_purpose"]
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["recipient_status"]
+          subject_snapshot: string
+        }
+        Update: {
+          campaign_recipient_id?: string | null
+          created_at?: string
+          email_address_id?: string
+          id?: string
+          provider?: string
+          provider_message_id?: string | null
+          purpose?: Database["public"]["Enums"]["permission_purpose"]
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["recipient_status"]
+          subject_snapshot?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_messages_campaign_recipient_id_fkey"
+            columns: ["campaign_recipient_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_recipients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_messages_email_address_id_fkey"
+            columns: ["email_address_id"]
+            isOneToOne: false
+            referencedRelation: "email_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          html_template: string
+          id: string
+          name: string
+          purpose: Database["public"]["Enums"]["permission_purpose"]
+          subject_template: string
+          text_template: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
           active?: boolean
+          created_at?: string
+          created_by?: string | null
+          html_template: string
+          id?: string
+          name: string
+          purpose: Database["public"]["Enums"]["permission_purpose"]
+          subject_template: string
+          text_template: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          html_template?: string
+          id?: string
+          name?: string
+          purpose?: Database["public"]["Enums"]["permission_purpose"]
+          subject_template?: string
+          text_template?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      firms: {
+        Row: {
+          address: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          legal_name: string | null
+          main_phone: string | null
+          name: string
+          owner_id: string | null
+          practice_areas: string[]
+          size_band: string | null
+          status: Database["public"]["Enums"]["record_status"]
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          legal_name?: string | null
+          main_phone?: string | null
+          name: string
+          owner_id?: string | null
+          practice_areas?: string[]
+          size_band?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          legal_name?: string | null
+          main_phone?: string | null
+          name?: string
+          owner_id?: string | null
+          practice_areas?: string[]
+          size_band?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "firms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "firms_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mailing_list_members: {
+        Row: {
+          added_at: string
+          added_source: string | null
+          email_address_id: string
+          list_id: string
+          removed_at: string | null
+        }
+        Insert: {
+          added_at?: string
+          added_source?: string | null
+          email_address_id: string
+          list_id: string
+          removed_at?: string | null
+        }
+        Update: {
+          added_at?: string
+          added_source?: string | null
+          email_address_id?: string
+          list_id?: string
+          removed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mailing_list_members_email_address_id_fkey"
+            columns: ["email_address_id"]
+            isOneToOne: false
+            referencedRelation: "email_addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mailing_list_members_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "mailing_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mailing_lists: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          dynamic_filter: Json | null
+          id: string
+          name: string
+          purpose: Database["public"]["Enums"]["permission_purpose"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          dynamic_filter?: Json | null
+          id?: string
+          name: string
+          purpose: Database["public"]["Enums"]["permission_purpose"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          dynamic_filter?: Json | null
+          id?: string
+          name?: string
+          purpose?: Database["public"]["Enums"]["permission_purpose"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mailing_lists_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      people: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          first_name: string
+          id: string
+          last_name: string
+          linkedin_url: string | null
+          location: string | null
+          owner_id: string | null
+          phone: string | null
+          preferred_name: string | null
+          source_detail: string | null
+          source_type: string | null
+          status: Database["public"]["Enums"]["record_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          linkedin_url?: string | null
+          location?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          preferred_name?: string | null
+          source_detail?: string | null
+          source_type?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          linkedin_url?: string | null
+          location?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          preferred_name?: string | null
+          source_detail?: string | null
+          source_type?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "people_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          active: boolean
+          created_at: string
+          full_name: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          full_name: string
+          id: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          full_name?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      report_requests: {
+        Row: {
+          delivered_at: string | null
+          email_address_id: string
+          id: string
+          report_code: string
+          requested_at: string
+          source: string | null
+          status: string
+        }
+        Insert: {
+          delivered_at?: string | null
+          email_address_id: string
+          id?: string
+          report_code: string
+          requested_at?: string
+          source?: string | null
+          status?: string
+        }
+        Update: {
+          delivered_at?: string | null
+          email_address_id?: string
+          id?: string
+          report_code?: string
+          requested_at?: string
+          source?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_requests_email_address_id_fkey"
+            columns: ["email_address_id"]
+            isOneToOne: false
+            referencedRelation: "email_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppression_entries: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          email_address_id: string
+          id: string
+          lifted_at: string | null
+          lifted_by: string | null
+          notes: string | null
+          provider_event_id: string | null
+          reason: Database["public"]["Enums"]["suppression_reason"]
+          scope: Database["public"]["Enums"]["suppression_scope"]
+          source: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          email_address_id: string
+          id?: string
+          lifted_at?: string | null
+          lifted_by?: string | null
+          notes?: string | null
+          provider_event_id?: string | null
+          reason: Database["public"]["Enums"]["suppression_reason"]
+          scope: Database["public"]["Enums"]["suppression_scope"]
+          source: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          email_address_id?: string
+          id?: string
+          lifted_at?: string | null
+          lifted_by?: string | null
+          notes?: string | null
+          provider_event_id?: string | null
+          reason?: Database["public"]["Enums"]["suppression_reason"]
+          scope?: Database["public"]["Enums"]["suppression_scope"]
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppression_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suppression_entries_email_address_id_fkey"
+            columns: ["email_address_id"]
+            isOneToOne: false
+            referencedRelation: "email_addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suppression_entries_lifted_by_fkey"
+            columns: ["lifted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_answers: {
+        Row: {
+          answer: Json
+          created_at: string
+          id: string
+          question_id: string
+          response_id: string
+        }
+        Insert: {
+          answer: Json
+          created_at?: string
+          id?: string
+          question_id: string
+          response_id: string
+        }
+        Update: {
+          answer?: Json
+          created_at?: string
+          id?: string
+          question_id?: string
+          response_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "survey_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_answers_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "survey_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_options: {
+        Row: {
+          id: string
+          option_label: string
+          option_value: string
+          position: number
+          question_id: string
+        }
+        Insert: {
+          id?: string
+          option_label: string
+          option_value: string
+          position: number
+          question_id: string
+        }
+        Update: {
+          id?: string
+          option_label?: string
+          option_value?: string
+          position?: number
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "survey_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_questions: {
+        Row: {
+          id: string
+          position: number
+          question_key: string
+          question_text: string
+          question_type: string
+          required: boolean
+          settings: Json
+          survey_id: string
+        }
+        Insert: {
+          id?: string
+          position: number
+          question_key: string
+          question_text: string
+          question_type: string
+          required?: boolean
+          settings?: Json
+          survey_id: string
+        }
+        Update: {
+          id?: string
+          position?: number
+          question_key?: string
+          question_text?: string
+          question_type?: string
+          required?: boolean
+          settings?: Json
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_questions_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_responses: {
+        Row: {
+          broad_source: string | null
+          id: string
+          response_token_hash: string
+          status: string
+          submitted_at: string
+          survey_id: string
+        }
+        Insert: {
+          broad_source?: string | null
+          id?: string
+          response_token_hash: string
+          status?: string
+          submitted_at?: string
+          survey_id: string
+        }
+        Update: {
+          broad_source?: string | null
+          id?: string
+          response_token_hash?: string
+          status?: string
+          submitted_at?: string
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      surveys: {
+        Row: {
+          closes_at: string | null
+          created_at: string
+          id: string
+          opens_at: string | null
+          slug: string
+          status: string
+          title: string
+          version: number
+        }
+        Insert: {
+          closes_at?: string | null
+          created_at?: string
+          id?: string
+          opens_at?: string | null
+          slug: string
+          status?: string
+          title: string
+          version?: number
+        }
+        Update: {
+          closes_at?: string | null
+          created_at?: string
+          id?: string
+          opens_at?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          version?: number
         }
         Relationships: []
       }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      admin_add_suppression: {
+        Args: {
+          p_email_address_id: string
+          p_notes?: string
+          p_reason: Database["public"]["Enums"]["suppression_reason"]
+          p_scope: Database["public"]["Enums"]["suppression_scope"]
+        }
+        Returns: string
+      }
+      apply_permission_preference: {
+        Args: {
+          p_email_id: string
+          p_evidence: Json
+          p_kind: Database["public"]["Enums"]["permission_kind"]
+          p_purpose: Database["public"]["Enums"]["permission_purpose"]
+          p_source: string
+        }
+        Returns: undefined
+      }
+      can_send_email: {
+        Args: {
+          p_email_address_id: string
+          p_purpose: Database["public"]["Enums"]["permission_purpose"]
+        }
+        Returns: {
+          allowed: boolean
+          reason: string
+        }[]
+      }
+      claim_campaign_batch: {
+        Args: { p_batch_size?: number; p_campaign_id: string }
+        Returns: {
+          campaign_id: string
+          created_at: string
+          eligibility_snapshot: Json
+          email_address_id: string
+          email_snapshot: string
+          id: string
+          merge_data: Json
+          status: Database["public"]["Enums"]["recipient_status"]
+          suppression_reason: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "campaign_recipients"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      claim_report_batch: {
+        Args: { p_batch_size?: number; p_report_code?: string }
+        Returns: {
+          delivered_at: string | null
+          email_address_id: string
+          id: string
+          report_code: string
+          requested_at: string
+          source: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "report_requests"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      current_app_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      dashboard_summary: { Args: never; Returns: Json }
+      generate_campaign_recipients: {
+        Args: { p_campaign_id: string }
+        Returns: {
+          count: number
+          status: Database["public"]["Enums"]["recipient_status"]
+        }[]
+      }
+      get_active_survey: { Args: { p_slug: string }; Returns: Json }
+      normalise_email: { Args: { p_email: string }; Returns: string }
+      process_email_event: {
+        Args: {
+          p_event_type: string
+          p_occurred_at: string
+          p_payload: Json
+          p_provider: string
+          p_provider_event_id: string
+          p_provider_message_id: string
+        }
+        Returns: undefined
+      }
+      record_email_sent: {
+        Args: {
+          p_campaign_recipient_id: string
+          p_provider: string
+          p_provider_message_id: string
+          p_subject_snapshot: string
+        }
+        Returns: string
+      }
+      record_report_delivered: {
+        Args: { p_report_request_id: string }
+        Returns: undefined
+      }
+      record_unsubscribe: {
+        Args: {
+          p_email_address_id: string
+          p_scope: Database["public"]["Enums"]["suppression_scope"]
+          p_source?: string
+        }
+        Returns: undefined
+      }
+      submit_permission_request: {
+        Args: {
+          p_blog?: boolean
+          p_email: string
+          p_form_version?: string
+          p_recruitment?: boolean
+          p_report?: boolean
+          p_report_code?: string
+          p_source?: string
+        }
+        Returns: undefined
+      }
+      submit_survey_response: {
+        Args: { p_answers: Json; p_broad_source?: string; p_slug: string }
+        Returns: undefined
+      }
+      survey_aggregate_report: {
+        Args: { p_min_cohort?: number; p_slug: string }
+        Returns: Json
+      }
+    }
+    Enums: {
+      app_role: "admin" | "recruiter" | "marketing" | "viewer"
+      campaign_status:
+        | "draft"
+        | "scheduled"
+        | "sending"
+        | "paused"
+        | "completed"
+        | "cancelled"
+      permission_kind: "single_use" | "ongoing"
+      permission_purpose: "report" | "blog" | "recruitment"
+      preference_status: "unknown" | "opted_in" | "opted_out" | "fulfilled"
+      recipient_status:
+        | "pending"
+        | "suppressed"
+        | "queued"
+        | "sent"
+        | "delivered"
+        | "bounced"
+        | "complained"
+        | "unsubscribed"
+        | "failed"
+        | "cancelled"
+      record_status: "active" | "archived"
+      suppression_reason:
+        | "unsubscribe"
+        | "complaint"
+        | "hard_bounce"
+        | "soft_bounce_limit"
+        | "manual"
+        | "legal_request"
+      suppression_scope:
+        | "all_email"
+        | "all_marketing"
+        | "report"
+        | "blog"
+        | "recruitment"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {
+      app_role: ["admin", "recruiter", "marketing", "viewer"],
+      campaign_status: [
+        "draft",
+        "scheduled",
+        "sending",
+        "paused",
+        "completed",
+        "cancelled",
+      ],
+      permission_kind: ["single_use", "ongoing"],
+      permission_purpose: ["report", "blog", "recruitment"],
+      preference_status: ["unknown", "opted_in", "opted_out", "fulfilled"],
+      recipient_status: [
+        "pending",
+        "suppressed",
+        "queued",
+        "sent",
+        "delivered",
+        "bounced",
+        "complained",
+        "unsubscribed",
+        "failed",
+        "cancelled",
+      ],
+      record_status: ["active", "archived"],
+      suppression_reason: [
+        "unsubscribe",
+        "complaint",
+        "hard_bounce",
+        "soft_bounce_limit",
+        "manual",
+        "legal_request",
+      ],
+      suppression_scope: [
+        "all_email",
+        "all_marketing",
+        "report",
+        "blog",
+        "recruitment",
+      ],
+    },
+  },
+} as const
+
+/**
+ * Convenience alias, kept in sync with the generated Enums type above.
+ * Regenerate this whole file with:
+ *   npx supabase gen types typescript --project-id <ref> > src/types/database.ts
+ * then re-add this block (it's the only hand-authored part of the file).
+ */
+export type AppRole = Database['public']['Enums']['app_role']
