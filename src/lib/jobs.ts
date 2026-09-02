@@ -74,6 +74,43 @@ export async function createJob(values: JobFormValues): Promise<void> {
   if (error) throw error
 }
 
+export interface OpenPipelineJob {
+  job_id: string
+  title: string
+  firm_name: string
+  status: JobStatus
+  opened_at: string | null
+  estimated_value: number | null
+}
+
+export interface ClosedPipelineJob {
+  job_id: string
+  title: string
+  firm_name: string
+  status: JobStatus
+  closed_at: string | null
+  won: boolean
+  fee_amount: number | null
+}
+
+export interface JobsPipeline {
+  open_jobs: OpenPipelineJob[]
+  closed_jobs: ClosedPipelineJob[]
+  totals: {
+    open_count: number
+    open_estimated_value: number
+    closed_count: number
+    won_count: number
+    won_fee_total: number
+  }
+}
+
+export async function fetchJobsPipeline(): Promise<JobsPipeline> {
+  const { data, error } = await supabase.rpc('jobs_pipeline_dashboard')
+  if (error) throw error
+  return data as unknown as JobsPipeline
+}
+
 export async function setJobStatus(id: string, status: JobStatus): Promise<void> {
   const { error } = await supabase
     .from('jobs')

@@ -1694,6 +1694,7 @@ export type Database = {
         }
         Returns: Json
       }
+      jobs_pipeline_dashboard: { Args: never; Returns: Json }
       list_surveys: {
         Args: never
         Returns: {

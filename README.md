@@ -500,6 +500,14 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
+- **Jobs pipeline on the dashboard** (migration 28) - open jobs with an
+  estimated value (fee_percent against salary - the real fee isn't known
+  until a placement exists), and closed jobs showing whether they were
+  won and the actual fee, read from whether a placement actually exists
+  rather than trusting job status alone (so the number always matches
+  what's on the Placements page above). Totals strip: open count,
+  estimated pipeline value, won/closed ratio, total fees won.
+  admin/recruiter only, matching jobs/placements RLS exactly.
 - **Email is optional on `create_candidate`/`create_firm_contact`**
   (migration 27) - both required an email from the start, on the
   assumption a recruiter always has it in hand. Direct feedback: a call

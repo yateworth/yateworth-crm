@@ -13,6 +13,7 @@ import {
 import { fetchMyDueTasks, setTaskStatus, type Task } from '@/lib/tasks'
 import { fetchSurveys, type SurveyListItem } from '@/lib/surveys'
 import { fetchInsightsDashboard, type InsightsDashboard } from '@/lib/insights'
+import { fetchJobsPipeline, type JobsPipeline } from '@/lib/jobs'
 import { ChatAssistant } from '@/components/ChatAssistant'
 
 const SURVEY_SLUG = 'australian-legal-survey'
@@ -23,6 +24,10 @@ function timeAgo(iso: string | null): string {
   return days === 0 ? 'today' : `${days}d ago`
 }
 
+function money(value: number | null): string {
+  return value != null ? `$${value.toLocaleString()}` : '—'
+}
+
 export function DashboardPage() {
   const { profile } = useAuth()
   const canManage = profile?.role === 'admin' || profile?.role === 'recruiter'
@@ -31,6 +36,7 @@ export function DashboardPage() {
   const [surveyMeta, setSurveyMeta] = useState<SurveyListItem | null>(null)
   const [myTasks, setMyTasks] = useState<Task[]>([])
   const [insights, setInsights] = useState<InsightsDashboard | null>(null)
+  const [pipeline, setPipeline] = useState<JobsPipeline | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -43,19 +49,22 @@ export function DashboardPage() {
 
     async function load() {
       try {
-        const [summaryResult, surveyResult, surveysResult, tasksResult, insightsResult] = await Promise.all([
-          fetchDashboardSummary(),
-          fetchSurveyAggregateReport(SURVEY_SLUG),
-          fetchSurveys().catch(() => []),
-          fetchMyDueTasks(),
-          fetchInsightsDashboard().catch(() => null),
-        ])
+        const [summaryResult, surveyResult, surveysResult, tasksResult, insightsResult, pipelineResult] =
+          await Promise.all([
+            fetchDashboardSummary(),
+            fetchSurveyAggregateReport(SURVEY_SLUG),
+            fetchSurveys().catch(() => []),
+            fetchMyDueTasks(),
+            fetchInsightsDashboard().catch(() => null),
+            fetchJobsPipeline().catch(() => null),
+          ])
         if (cancelled) return
         setSummary(summaryResult)
         setSurvey(surveyResult)
         setSurveyMeta(surveysResult.find((s) => s.slug === SURVEY_SLUG) ?? null)
         setMyTasks(tasksResult)
         setInsights(insightsResult)
+        setPipeline(pipelineResult)
       } catch (err) {
         if (cancelled) return
         setError(
@@ -119,6 +128,80 @@ export function DashboardPage() {
                   ))}
                 </ul>
               )}
+            </div>
+          </section>
+        )}
+
+        {pipeline && (pipeline.open_jobs.length > 0 || pipeline.closed_jobs.length > 0) && (
+          <section>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-sec">Jobs pipeline</h2>
+            <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="rounded-lg border border-ink/10 bg-paper p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Open jobs</p>
+                <p className="mt-1 text-xl font-bold text-ink">{pipeline.totals.open_count}</p>
+              </div>
+              <div className="rounded-lg border border-ink/10 bg-paper p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Est. pipeline value</p>
+                <p className="mt-1 text-xl font-bold text-ink">{money(pipeline.totals.open_estimated_value)}</p>
+              </div>
+              <div className="rounded-lg border border-ink/10 bg-paper p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-ink/40">
+                  Closed jobs won
+                </p>
+                <p className="mt-1 text-xl font-bold text-ink">
+                  {pipeline.totals.won_count} / {pipeline.totals.closed_count}
+                </p>
+              </div>
+              <div className="rounded-lg border border-ink/10 bg-paper p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Fees won</p>
+                <p className="mt-1 text-xl font-bold text-ox">{money(pipeline.totals.won_fee_total)}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="rounded-lg border border-ink/10 bg-paper p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Open</p>
+                {pipeline.open_jobs.length === 0 ? (
+                  <p className="mt-2 text-sm text-ink/40">No open jobs.</p>
+                ) : (
+                  <ul className="mt-2 space-y-1.5 text-sm">
+                    {pipeline.open_jobs.map((j) => (
+                      <li key={j.job_id} className="flex items-baseline justify-between gap-2">
+                        <Link to={`/jobs/${j.job_id}`} className="text-ink hover:underline">
+                          {j.title} <span className="text-xs text-ink/40">— {j.firm_name}</span>
+                        </Link>
+                        <span className="shrink-0 text-xs text-sec">
+                          {j.opened_at ? new Date(j.opened_at).toLocaleDateString() : '—'} · {money(j.estimated_value)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="rounded-lg border border-ink/10 bg-paper p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Closed</p>
+                {pipeline.closed_jobs.length === 0 ? (
+                  <p className="mt-2 text-sm text-ink/40">No closed jobs.</p>
+                ) : (
+                  <ul className="mt-2 space-y-1.5 text-sm">
+                    {pipeline.closed_jobs.map((j) => (
+                      <li key={j.job_id} className="flex items-baseline justify-between gap-2">
+                        <Link to={`/jobs/${j.job_id}`} className="text-ink hover:underline">
+                          {j.title} <span className="text-xs text-ink/40">— {j.firm_name}</span>
+                        </Link>
+                        <span className="shrink-0 text-xs">
+                          {j.closed_at ? new Date(j.closed_at).toLocaleDateString() : '—'} ·{' '}
+                          {j.won ? (
+                            <span className="text-ox">won {money(j.fee_amount)}</span>
+                          ) : (
+                            <span className="text-ink/40">not won</span>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </section>
         )}
