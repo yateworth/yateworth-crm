@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import { FirmForm } from '@/components/FirmForm'
 import { FirmContacts } from '@/components/FirmContacts'
+import { FileAttachments } from '@/components/FileAttachments'
 import { ActivityFeed } from '@/components/ActivityFeed'
 import { TaskList } from '@/components/TaskList'
 import { useAuth } from '@/contexts/AuthContext'
@@ -220,6 +221,10 @@ export function FirmDetailPage() {
 
       <div className="mt-6 rounded-lg border border-ink/10 bg-paper p-5">
         <FirmContacts firmId={firm.id} />
+      </div>
+
+      <div className="mt-6 rounded-lg border border-ink/10 bg-paper p-5">
+        <FileAttachments subjectType="firms" subjectId={firm.id} />
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-6">

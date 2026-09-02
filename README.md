@@ -500,6 +500,17 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
+- **File storage on candidates, firms and jobs** (migration 26) - a
+  private `attachments` Storage bucket plus a `file_attachments`
+  metadata table (subject_type/subject_id polymorphic, matching the
+  activities/tasks pattern), RLS mirroring people/firms/jobs exactly
+  (recruiter/admin only). `candidate_profiles.cv_storage_path` has sat
+  unused since the very first migration anticipating exactly this - it
+  stays as-is for now (a candidate's actual CV upload goes through this
+  same new attachments system rather than that single-file column, which
+  would need its own separate wiring for one narrower case). Downloads
+  go through a short-lived signed URL since the bucket is private, not a
+  bare public link.
 - **Rules-based insights on the dashboard** (migration 25) - chosen over
   an LLM-powered version specifically to keep candidate/firm data inside
   this database rather than sending it to an external API on every

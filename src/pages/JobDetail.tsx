@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
+import { FileAttachments } from '@/components/FileAttachments'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchJob, setJobStatus, type JobWithFirm, type JobStatus } from '@/lib/jobs'
 import {
@@ -203,6 +204,10 @@ export function JobDetailPage() {
             )
           })}
         </div>
+      </div>
+
+      <div className="mt-6 rounded-lg border border-ink/10 bg-paper p-5">
+        <FileAttachments subjectType="jobs" subjectId={job.id} />
       </div>
     </Layout>
   )

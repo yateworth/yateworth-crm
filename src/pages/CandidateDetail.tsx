@@ -5,6 +5,7 @@ import { CandidateForm } from '@/components/CandidateForm'
 import { ActivityFeed } from '@/components/ActivityFeed'
 import { TaskList } from '@/components/TaskList'
 import { SendEmailForm } from '@/components/SendEmailForm'
+import { FileAttachments } from '@/components/FileAttachments'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchSubmissionsForCandidate, type SubmissionWithJob } from '@/lib/submissions'
 import {
@@ -297,6 +298,10 @@ export function CandidateDetailPage() {
           <SendEmailForm personId={candidate.id} onSent={() => setActivityRefreshKey((k) => k + 1)} />
         </div>
       )}
+
+      <div className="mt-6 rounded-lg border border-ink/10 bg-paper p-5">
+        <FileAttachments subjectType="people" subjectId={candidate.id} />
+      </div>
 
       <div className="mt-6 grid grid-cols-2 gap-6">
         <div className="rounded-lg border border-ink/10 bg-paper p-5">
