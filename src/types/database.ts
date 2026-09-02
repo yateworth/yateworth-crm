@@ -695,6 +695,90 @@ export type Database = {
           },
         ]
       }
+      jobs: {
+        Row: {
+          closed_at: string | null
+          confidential_notes: string | null
+          created_at: string
+          description: string | null
+          employment_type: string | null
+          fee_percent: number | null
+          firm_id: string
+          id: string
+          location: string | null
+          max_pqe: number | null
+          min_pqe: number | null
+          opened_at: string | null
+          owner_id: string | null
+          practice_area: string | null
+          reference_code: string | null
+          salary_max: number | null
+          salary_min: number | null
+          status: Database["public"]["Enums"]["job_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          confidential_notes?: string | null
+          created_at?: string
+          description?: string | null
+          employment_type?: string | null
+          fee_percent?: number | null
+          firm_id: string
+          id?: string
+          location?: string | null
+          max_pqe?: number | null
+          min_pqe?: number | null
+          opened_at?: string | null
+          owner_id?: string | null
+          practice_area?: string | null
+          reference_code?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          status?: Database["public"]["Enums"]["job_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          confidential_notes?: string | null
+          created_at?: string
+          description?: string | null
+          employment_type?: string | null
+          fee_percent?: number | null
+          firm_id?: string
+          id?: string
+          location?: string | null
+          max_pqe?: number | null
+          min_pqe?: number | null
+          opened_at?: string | null
+          owner_id?: string | null
+          practice_area?: string | null
+          reference_code?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          status?: Database["public"]["Enums"]["job_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mailing_list_members: {
         Row: {
           added_at: string
@@ -899,6 +983,73 @@ export type Database = {
             columns: ["email_address_id"]
             isOneToOne: false
             referencedRelation: "email_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submissions: {
+        Row: {
+          candidate_id: string
+          consent_to_submit_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          job_id: string
+          notes: string | null
+          rejection_reason: string | null
+          source: string | null
+          stage: Database["public"]["Enums"]["submission_stage"]
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          candidate_id: string
+          consent_to_submit_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id: string
+          notes?: string | null
+          rejection_reason?: string | null
+          source?: string | null
+          stage?: Database["public"]["Enums"]["submission_stage"]
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          consent_to_submit_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id?: string
+          notes?: string | null
+          rejection_reason?: string | null
+          source?: string | null
+          stage?: Database["public"]["Enums"]["submission_stage"]
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["person_id"]
+          },
+          {
+            foreignKeyName: "submissions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -1372,6 +1523,13 @@ export type Database = {
         | "paused"
         | "completed"
         | "cancelled"
+      job_status:
+        | "draft"
+        | "open"
+        | "on_hold"
+        | "filled"
+        | "closed"
+        | "cancelled"
       permission_kind: "single_use" | "ongoing"
       permission_purpose: "report" | "blog" | "recruitment"
       preference_status: "unknown" | "opted_in" | "opted_out" | "fulfilled"
@@ -1387,6 +1545,15 @@ export type Database = {
         | "failed"
         | "cancelled"
       record_status: "active" | "archived"
+      submission_stage:
+        | "longlist"
+        | "shortlist"
+        | "submitted"
+        | "interview"
+        | "offer"
+        | "placed"
+        | "rejected"
+        | "withdrawn"
       suppression_reason:
         | "unsubscribe"
         | "complaint"
@@ -1540,6 +1707,7 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      job_status: ["draft", "open", "on_hold", "filled", "closed", "cancelled"],
       permission_kind: ["single_use", "ongoing"],
       permission_purpose: ["report", "blog", "recruitment"],
       preference_status: ["unknown", "opted_in", "opted_out", "fulfilled"],
@@ -1556,6 +1724,16 @@ export const Constants = {
         "cancelled",
       ],
       record_status: ["active", "archived"],
+      submission_stage: [
+        "longlist",
+        "shortlist",
+        "submitted",
+        "interview",
+        "offer",
+        "placed",
+        "rejected",
+        "withdrawn",
+      ],
       suppression_reason: [
         "unsubscribe",
         "complaint",

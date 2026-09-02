@@ -5,6 +5,7 @@ import { CandidateForm } from '@/components/CandidateForm'
 import { ActivityFeed } from '@/components/ActivityFeed'
 import { TaskList } from '@/components/TaskList'
 import { useAuth } from '@/contexts/AuthContext'
+import { fetchSubmissionsForCandidate, type SubmissionWithJob } from '@/lib/submissions'
 import {
   fetchCandidate,
   updateCandidate,
@@ -24,6 +25,7 @@ export function CandidateDetailPage() {
   const canManage = profile?.role === 'admin' || profile?.role === 'recruiter'
 
   const [candidate, setCandidate] = useState<Candidate | null>(null)
+  const [submissions, setSubmissions] = useState<SubmissionWithJob[]>([])
   const [values, setValues] = useState<CandidateFormValues>(emptyCandidateForm)
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -34,9 +36,13 @@ export function CandidateDetailPage() {
     if (!id) return
     setLoading(true)
     try {
-      const data = await fetchCandidate(id)
+      const [data, submissionsResult] = await Promise.all([
+        fetchCandidate(id),
+        fetchSubmissionsForCandidate(id),
+      ])
       setCandidate(data)
       setValues(candidateToFormValues(data))
+      setSubmissions(submissionsResult)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load this candidate.')
@@ -255,6 +261,32 @@ export function CandidateDetailPage() {
               />
             </Section>
           </div>
+        )}
+      </div>
+
+      <div className="mt-6 rounded-lg border border-ink/10 bg-paper p-5">
+        <h3 className="font-display text-sm font-semibold text-ink">
+          Submitted to <span className="text-ink/40">({submissions.length})</span>
+        </h3>
+        {submissions.length === 0 ? (
+          <p className="mt-2 text-sm text-ink/40">
+            Not yet submitted to any role. Add them to a pipeline from the{' '}
+            <Link to="/jobs" className="underline">
+              Jobs
+            </Link>{' '}
+            page.
+          </p>
+        ) : (
+          <ul className="mt-2 space-y-1.5 text-sm">
+            {submissions.map((s) => (
+              <li key={s.id} className="flex items-baseline justify-between">
+                <span className="text-ink">
+                  {s.jobs?.title} <span className="text-sec">— {s.jobs?.firms?.name}</span>
+                </span>
+                <span className="text-xs font-medium uppercase tracking-wide text-sec">{s.stage}</span>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 

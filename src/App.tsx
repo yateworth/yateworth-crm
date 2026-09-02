@@ -7,6 +7,8 @@ import { CandidatesPage } from '@/pages/Candidates'
 import { CandidateDetailPage } from '@/pages/CandidateDetail'
 import { FirmsPage } from '@/pages/Firms'
 import { FirmDetailPage } from '@/pages/FirmDetail'
+import { JobsPage } from '@/pages/Jobs'
+import { JobDetailPage } from '@/pages/JobDetail'
 
 export default function App() {
   return (
@@ -51,6 +53,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <FirmDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs"
+            element={
+              <ProtectedRoute>
+                <JobsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs/:id"
+            element={
+              <ProtectedRoute>
+                <JobDetailPage />
               </ProtectedRoute>
             }
           />

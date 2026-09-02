@@ -1,5 +1,9 @@
 # Make the CRM actually functional (candidates, firms, surveys, activity)
 
+**Status**: Stage 1 (detail pages/edit/archive) — done. Stage 2
+(activities/tasks) — done. Stage 3 (jobs/pipeline) — done. Stage 4
+(clickable survey page) — not started.
+
 ## Context
 
 Milestones 1-6 built the compliance/marketing-ops backend (permissions, anonymous survey, campaigns, unsubscribe, reporting) plus two thin CRM screens (Candidates, Firms) added as a fast follow when it became clear the dashboard alone didn't feel like a CRM.

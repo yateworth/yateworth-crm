@@ -166,8 +166,9 @@ tokens (`--ink`, `--ox`, `--brass`, `--sec`, etc. from `my-site/index.html`'s
   (`record_unsubscribe()`, `process_email_event()`), report delivery and
   reporting (`claim_report_batch()`, `record_report_delivered()`,
   `survey_aggregate_report()`, `dashboard_summary()`), the role-check
-  security fix (see above), `create_candidate()`, and `activities`/`tasks`
-  (append-only activities, assignable/completable tasks).
+  security fix (see above), `create_candidate()`, `activities`/`tasks`
+  (append-only activities, assignable/completable tasks), and
+  `jobs`/`submissions` (the candidate pipeline, stage-tracked).
 - `supabase/seed/seed.sql` — fictional firms/people/candidates only.
 - `supabase/tests/permission_ledger.sql`, `supabase/tests/anonymous_survey.sql`,
   `supabase/tests/campaigns.sql`, `supabase/tests/unsubscribe_and_bounces.sql`,
@@ -175,7 +176,8 @@ tokens (`--ink`, `--ox`, `--brass`, `--sec`, etc. from `my-site/index.html`'s
   `supabase/tests/role_check_regression.sql`,
   `supabase/tests/create_candidate.sql`,
   `supabase/tests/activities_and_tasks.sql`,
-  `supabase/tests/direct_table_rls.sql` — SQL assertions run against
+  `supabase/tests/direct_table_rls.sql`,
+  `supabase/tests/jobs_and_submissions.sql` — SQL assertions run against
   the real database (see "Testing against the live database" below),
   including a schema-level proof that `survey_responses`/`survey_answers`
   carry no identity column and `report_requests` carries no
@@ -428,12 +430,21 @@ npm run validate     # typecheck + lint + test + build, in order
   see "A testing gap, found and fixed" below before trusting any RLS
   claim in this README for tables written to directly from the client
   (as opposed to through a function).
+- **Stage 3 (jobs + candidate pipeline)** — done. `jobs` (belongs to a
+  firm) and `submissions` (candidate × job, `submission_stage` tracked:
+  longlist → shortlist → submitted → interview → offer → placed/rejected/
+  withdrawn), both fully specified in the original spec but never
+  migrated until now. A job's detail page is a simple column-per-stage
+  board — not drag-and-drop, a stage select per candidate card, per the
+  plan's own scoping. A candidate's detail page shows every job they've
+  been submitted to. `direct_table_rls.sql`-style testing (`set local
+  role authenticated`) used from the start this time, not retrofitted.
 - **Plan for the rest of "make this a real CRM"** is in
-  `docs/crm-functionality-plan.md`: jobs + a candidate pipeline next
-  (Stage 3), then making the survey section its own clickable page
-  instead of a dashboard widget (Stage 4).
-- **Phase 2 remaining**: jobs, submissions, matching, Apollo promotion,
-  duplicate/near-match detection.
+  `docs/crm-functionality-plan.md`: making the survey section its own
+  clickable page instead of a dashboard widget (Stage 4) is what's left
+  of the original 4-stage plan.
+- **Phase 2 remaining**: matching, Apollo promotion, duplicate/near-match
+  detection.
 - **Phase 3**: interviews, offers, placements, fee tracking.
 - **Not in the spec at all yet**: a backend for `knowyourworth.html` (see
   "Wiring up the live site" above).

@@ -28,6 +28,9 @@ export function Layout({ children }: { children: ReactNode }) {
             <NavLink to="/firms" className={navLinkClass}>
               Firms
             </NavLink>
+            <NavLink to="/jobs" className={navLinkClass}>
+              Jobs
+            </NavLink>
           </nav>
           <div className="ml-auto flex items-center gap-4">
             <span className="text-sm text-ground/70">
