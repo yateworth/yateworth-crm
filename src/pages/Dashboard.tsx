@@ -50,17 +50,17 @@ export function DashboardPage() {
   return (
     <Layout>
       <div className="space-y-6">
-        {loading && <p className="text-sm text-neutral-500">Loading…</p>}
+        {loading && <p className="text-sm text-sec">Loading…</p>}
 
         {error && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <div className="rounded-lg border border-brass/40 bg-brass/10 p-4 text-sm text-ink">
             {error}
           </div>
         )}
 
         {summary && (
           <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-sec">
               Overview
             </h2>
             <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -79,10 +79,10 @@ export function DashboardPage() {
 
         {survey && (
           <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-sec">
               Australian Legal Survey
             </h2>
-            <p className="mt-2 text-sm text-neutral-600">
+            <p className="mt-2 text-sm text-sec">
               {survey.total_responses} response{survey.total_responses === 1 ? '' : 's'} total.
               Any answer given by fewer than {survey.min_cohort} respondents is withheld below.
             </p>
@@ -90,19 +90,19 @@ export function DashboardPage() {
               {survey.questions
                 .filter((q) => q.options && q.options.length > 0)
                 .map((question) => (
-                  <div key={question.key} className="rounded-lg border border-neutral-200 bg-white p-5">
-                    <h3 className="text-sm font-semibold text-neutral-900">{question.key}</h3>
+                  <div key={question.key} className="rounded-lg border border-ink/10 bg-paper p-5">
+                    <h3 className="font-display text-sm font-semibold text-ink">{question.key}</h3>
                     <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                       {question.options?.map((opt) => (
                         <div key={opt.value} className="flex items-baseline justify-between text-sm">
-                          <dt className="text-neutral-600">{opt.value}</dt>
+                          <dt className="text-sec">{opt.value}</dt>
                           <dd className="font-medium tabular-nums">
                             {opt.suppressed ? (
-                              <span className="text-neutral-400" title="Fewer than the minimum cohort">
+                              <span className="text-ink/40" title="Fewer than the minimum cohort">
                                 suppressed
                               </span>
                             ) : (
-                              <span className="text-neutral-900">{opt.count}</span>
+                              <span className="text-ink">{opt.count}</span>
                             )}
                           </dd>
                         </div>

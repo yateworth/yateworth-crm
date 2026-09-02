@@ -24,7 +24,7 @@ export function FirmForm({ values, onChange, disabled }: Props) {
     <div className="grid grid-cols-2 gap-3">
       {textInputs.map(([key, id, label]) => (
         <div key={id}>
-          <label htmlFor={id} className="block text-sm font-medium text-neutral-700">
+          <label htmlFor={id} className="block text-sm font-medium text-sec">
             {label}
           </label>
           <input
@@ -33,12 +33,12 @@ export function FirmForm({ values, onChange, disabled }: Props) {
             disabled={disabled}
             value={values[key]}
             onChange={(e) => set(key, e.target.value)}
-            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:bg-neutral-100"
+            className="mt-1 w-full rounded-md border border-ink/20 px-3 py-1.5 text-sm disabled:bg-tint"
           />
         </div>
       ))}
       <div className="col-span-2">
-        <label htmlFor="firm-areas" className="block text-sm font-medium text-neutral-700">
+        <label htmlFor="firm-areas" className="block text-sm font-medium text-sec">
           Practice areas (comma-separated)
         </label>
         <input
@@ -46,7 +46,7 @@ export function FirmForm({ values, onChange, disabled }: Props) {
           disabled={disabled}
           value={values.practiceAreas}
           onChange={(e) => set('practiceAreas', e.target.value)}
-          className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:bg-neutral-100"
+          className="mt-1 w-full rounded-md border border-ink/20 px-3 py-1.5 text-sm disabled:bg-tint"
         />
       </div>
     </div>

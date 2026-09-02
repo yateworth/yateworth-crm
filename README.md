@@ -85,6 +85,13 @@ React + TypeScript + Vite + Tailwind, deployed to Netlify (static site +
 serverless functions), backed by Supabase (Postgres + Auth + Storage + Row
 Level Security).
 
+**Visual design matches the marketing site**, not a generic admin-panel
+look. `src/index.css`'s `@theme` block ports the marketing site's exact
+tokens (`--ink`, `--ox`, `--brass`, `--sec`, etc. from `my-site/index.html`'s
+`:root`) into Tailwind v4 utilities (`bg-ox`, `text-ink`, `font-display`,
+...) — keep the two in sync if the marketing site's palette changes.
+`index.html` loads the same Source Serif 4 / Archivo Google Fonts pairing.
+
 ## What exists right now
 
 - `src/` — Supabase browser client, auth context, a login page, and a

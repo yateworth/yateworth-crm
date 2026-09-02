@@ -1,9 +1,42 @@
 @import "tailwindcss";
 
+/**
+ * Yateworth brand tokens, ported from the marketing site (my-site/index.html)
+ * so the CRM looks like the same product rather than a generic admin panel.
+ * Tailwind v4's @theme generates utilities from these automatically:
+ * --color-ox becomes bg-ox/text-ox/border-ox/etc, --font-display becomes
+ * font-display. Keep these in sync with the marketing site's :root if its
+ * palette ever changes.
+ */
+@theme {
+  --color-ink: #11241c; /* bottle green: body text + dark grounds */
+  --color-ink-soft: #1b3327;
+  --color-ground: #f5f7f2; /* page background */
+  --color-tint: #e6ebe3; /* alternate band / subtle fill */
+  --color-paper: #fbfcf9; /* card background */
+  --color-sec: #2f4a3c; /* secondary text */
+  --color-ox: #7b1e2b; /* oxblood: primary actions and accents */
+  --color-ox-lift: #9b2b39; /* oxblood hover state */
+  --color-brass: #e3b463; /* brass: on dark grounds only */
+  --color-art: #7e9b8b;
+
+  --font-display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
+}
+
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
 }

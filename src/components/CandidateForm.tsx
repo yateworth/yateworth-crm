@@ -26,7 +26,7 @@ export function CandidateForm({ values, onChange, emailDisabled }: Props) {
   function textField(key: keyof CandidateFormValues, id: string, label: string, opts?: { type?: string; required?: boolean }) {
     return (
       <div>
-        <label htmlFor={id} className="block text-sm font-medium text-neutral-700">
+        <label htmlFor={id} className="block text-sm font-medium text-sec">
           {label}
         </label>
         <input
@@ -36,7 +36,7 @@ export function CandidateForm({ values, onChange, emailDisabled }: Props) {
           disabled={id === 'c-email' && emailDisabled}
           value={values[key]}
           onChange={(e) => set(key, e.target.value)}
-          className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:bg-neutral-100"
+          className="mt-1 w-full rounded-md border border-ink/20 px-3 py-1.5 text-sm disabled:bg-tint"
         />
       </div>
     )
@@ -45,7 +45,7 @@ export function CandidateForm({ values, onChange, emailDisabled }: Props) {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-sec">
           Personal details
         </h3>
         <div className="mt-2 grid grid-cols-2 gap-3">
@@ -60,20 +60,20 @@ export function CandidateForm({ values, onChange, emailDisabled }: Props) {
       </div>
 
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-sec">
           Practice
         </h3>
         <div className="mt-2 grid grid-cols-2 gap-3">
           {textField('currentTitle', 'c-title', 'Current title')}
           <div>
-            <label htmlFor="c-firm" className="block text-sm font-medium text-neutral-700">
+            <label htmlFor="c-firm" className="block text-sm font-medium text-sec">
               Current firm
             </label>
             <select
               id="c-firm"
               value={values.currentFirmId}
               onChange={(e) => set('currentFirmId', e.target.value)}
-              className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm"
+              className="mt-1 w-full rounded-md border border-ink/20 bg-paper px-3 py-1.5 text-sm"
             >
               <option value="">—</option>
               {firms.map((firm) => (
@@ -85,14 +85,14 @@ export function CandidateForm({ values, onChange, emailDisabled }: Props) {
           </div>
           {textField('yearsPqe', 'c-pqe', 'Years PQE', { type: 'number' })}
           <div>
-            <label htmlFor="c-status" className="block text-sm font-medium text-neutral-700">
+            <label htmlFor="c-status" className="block text-sm font-medium text-sec">
               Candidate status
             </label>
             <select
               id="c-status"
               value={values.candidateStatus}
               onChange={(e) => set('candidateStatus', e.target.value)}
-              className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm"
+              className="mt-1 w-full rounded-md border border-ink/20 bg-paper px-3 py-1.5 text-sm"
             >
               {CANDIDATE_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -107,7 +107,7 @@ export function CandidateForm({ values, onChange, emailDisabled }: Props) {
       </div>
 
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-sec">
           Preferences
         </h3>
         <div className="mt-2 grid grid-cols-2 gap-3">
@@ -120,7 +120,7 @@ export function CandidateForm({ values, onChange, emailDisabled }: Props) {
       </div>
 
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Source</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-sec">Source</h3>
         <div className="mt-2 grid grid-cols-2 gap-3">
           {textField('sourceType', 'c-source-type', 'Source (e.g. referral, LinkedIn)')}
           {textField('sourceDetail', 'c-source-detail', 'Source detail')}

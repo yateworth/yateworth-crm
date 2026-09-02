@@ -95,7 +95,7 @@ export function CandidateDetailPage() {
   if (loading) {
     return (
       <Layout>
-        <p className="text-sm text-neutral-500">Loading…</p>
+        <p className="text-sm text-sec">Loading…</p>
       </Layout>
     )
   }
@@ -103,8 +103,8 @@ export function CandidateDetailPage() {
   if (!candidate) {
     return (
       <Layout>
-        <p className="text-sm text-red-700">{error ?? 'Candidate not found.'}</p>
-        <Link to="/candidates" className="mt-3 inline-block text-sm text-neutral-600 hover:underline">
+        <p className="text-sm text-ox">{error ?? 'Candidate not found.'}</p>
+        <Link to="/candidates" className="mt-3 inline-block text-sm text-sec hover:underline">
           Back to candidates
         </Link>
       </Layout>
@@ -115,12 +115,12 @@ export function CandidateDetailPage() {
 
   return (
     <Layout>
-      <Link to="/candidates" className="text-sm text-neutral-500 hover:underline">
+      <Link to="/candidates" className="text-sm text-sec hover:underline">
         ← Candidates
       </Link>
 
       <div className="mt-2 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-neutral-900">
+        <h1 className="font-display text-lg font-semibold text-ink">
           {candidate.first_name} {candidate.last_name}
         </h1>
         {canManage && (
@@ -132,14 +132,14 @@ export function CandidateDetailPage() {
                     setEditing(false)
                     setValues(candidateToFormValues(candidate))
                   }}
-                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
+                  className="rounded-md border border-ink/20 px-3 py-1.5 text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                  className="rounded-md bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
                 >
                   {saving ? 'Saving…' : 'Save'}
                 </button>
@@ -148,19 +148,19 @@ export function CandidateDetailPage() {
               <>
                 <button
                   onClick={handleLogContact}
-                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700"
+                  className="rounded-md border border-ink/20 px-3 py-1.5 text-sm text-sec"
                 >
                   Log contact
                 </button>
                 <button
                   onClick={handleArchiveToggle}
-                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700"
+                  className="rounded-md border border-ink/20 px-3 py-1.5 text-sm text-sec"
                 >
                   {candidate.status === 'active' ? 'Archive' : 'Restore'}
                 </button>
                 <button
                   onClick={() => setEditing(true)}
-                  className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white"
+                  className="rounded-md bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift"
                 >
                   Edit
                 </button>
@@ -172,22 +172,22 @@ export function CandidateDetailPage() {
 
       <div className="mt-2 flex gap-2">
         {candidate.status === 'archived' && (
-          <span className="inline-block rounded-full bg-neutral-200 px-2.5 py-1 text-xs font-medium text-neutral-600">
+          <span className="inline-block rounded-full bg-tint px-2.5 py-1 text-xs font-medium text-sec">
             Archived
           </span>
         )}
-        <span className="inline-block rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600">
+        <span className="inline-block rounded-full bg-tint px-2.5 py-1 text-xs font-medium text-sec">
           {profileData?.candidate_status}
         </span>
       </div>
 
       {error && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="mt-4 rounded-lg border border-ox/30 bg-ox/5 p-3 text-sm text-ox">
           {error}
         </div>
       )}
 
-      <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="mt-4 rounded-lg border border-ink/10 bg-paper p-5">
         {editing ? (
           <CandidateForm values={values} onChange={setValues} emailDisabled />
         ) : (
@@ -262,7 +262,7 @@ export function CandidateDetailPage() {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{title}</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-sec">{title}</h3>
       <dl className="mt-2 grid grid-cols-2 gap-4 text-sm">{children}</dl>
     </div>
   )
@@ -271,8 +271,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-neutral-400">{label}</dt>
-      <dd className="mt-0.5 text-neutral-900">{value || '—'}</dd>
+      <dt className="text-xs font-medium uppercase tracking-wide text-ink/40">{label}</dt>
+      <dd className="mt-0.5 text-ink">{value || '—'}</dd>
     </div>
   )
 }
