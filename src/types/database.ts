@@ -632,6 +632,61 @@ export type Database = {
           },
         ]
       }
+      firm_contacts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          firm_id: string
+          id: string
+          is_primary: boolean
+          person_id: string
+          role_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          firm_id: string
+          id?: string
+          is_primary?: boolean
+          person_id: string
+          role_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          firm_id?: string
+          id?: string
+          is_primary?: boolean
+          person_id?: string
+          role_title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "firm_contacts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "firm_contacts_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "firm_contacts_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       firms: {
         Row: {
           address: Json
@@ -643,6 +698,7 @@ export type Database = {
           name: string
           owner_id: string | null
           practice_areas: string[]
+          relationship_stage: Database["public"]["Enums"]["firm_relationship_stage"]
           size_band: string | null
           status: Database["public"]["Enums"]["record_status"]
           updated_at: string
@@ -658,6 +714,7 @@ export type Database = {
           name: string
           owner_id?: string | null
           practice_areas?: string[]
+          relationship_stage?: Database["public"]["Enums"]["firm_relationship_stage"]
           size_band?: string | null
           status?: Database["public"]["Enums"]["record_status"]
           updated_at?: string
@@ -673,6 +730,7 @@ export type Database = {
           name?: string
           owner_id?: string | null
           practice_areas?: string[]
+          relationship_stage?: Database["public"]["Enums"]["firm_relationship_stage"]
           size_band?: string | null
           status?: Database["public"]["Enums"]["record_status"]
           updated_at?: string
@@ -1495,6 +1553,18 @@ export type Database = {
         }
         Returns: string
       }
+      create_firm_contact: {
+        Args: {
+          p_email: string
+          p_firm_id: string
+          p_first_name: string
+          p_is_primary?: boolean
+          p_last_name: string
+          p_phone?: string
+          p_role_title?: string
+        }
+        Returns: string
+      }
       current_app_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1593,6 +1663,12 @@ export type Database = {
         | "paused"
         | "completed"
         | "cancelled"
+      firm_relationship_stage:
+        | "prospect"
+        | "contacted"
+        | "terms_sent"
+        | "terms_signed"
+        | "dormant"
       job_status:
         | "draft"
         | "open"
@@ -1776,6 +1852,13 @@ export const Constants = {
         "paused",
         "completed",
         "cancelled",
+      ],
+      firm_relationship_stage: [
+        "prospect",
+        "contacted",
+        "terms_sent",
+        "terms_signed",
+        "dormant",
       ],
       job_status: ["draft", "open", "on_hold", "filled", "closed", "cancelled"],
       permission_kind: ["single_use", "ongoing"],

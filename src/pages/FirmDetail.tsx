@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import { FirmForm } from '@/components/FirmForm'
+import { FirmContacts } from '@/components/FirmContacts'
 import { ActivityFeed } from '@/components/ActivityFeed'
 import { TaskList } from '@/components/TaskList'
 import { useAuth } from '@/contexts/AuthContext'
@@ -9,11 +10,21 @@ import {
   fetchFirm,
   updateFirm,
   setFirmStatus,
+  setFirmRelationshipStage,
   firmToFormValues,
   emptyFirmForm,
+  FIRM_RELATIONSHIP_STAGES,
   type Firm,
   type FirmFormValues,
 } from '@/lib/firms'
+
+const stageLabels: Record<string, string> = {
+  prospect: 'Prospect',
+  contacted: 'Contacted',
+  terms_sent: 'Terms sent',
+  terms_signed: 'Terms signed',
+  dormant: 'Dormant',
+}
 
 export function FirmDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -68,6 +79,16 @@ export function FirmDetailPage() {
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update status.')
+    }
+  }
+
+  async function handleStageChange(stage: (typeof FIRM_RELATIONSHIP_STAGES)[number]) {
+    if (!id) return
+    try {
+      await setFirmRelationshipStage(id, stage)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update relationship stage.')
     }
   }
 
@@ -139,11 +160,33 @@ export function FirmDetailPage() {
         )}
       </div>
 
-      {firm.status === 'archived' && (
-        <p className="mt-2 inline-block rounded-full bg-tint px-2.5 py-1 text-xs font-medium text-sec">
-          Archived
-        </p>
-      )}
+      <div className="mt-2 flex items-center gap-3">
+        {firm.status === 'archived' && (
+          <p className="inline-block rounded-full bg-tint px-2.5 py-1 text-xs font-medium text-sec">
+            Archived
+          </p>
+        )}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-ink/40">Relationship:</span>
+          {canManage ? (
+            <select
+              value={firm.relationship_stage}
+              onChange={(e) => handleStageChange(e.target.value as (typeof FIRM_RELATIONSHIP_STAGES)[number])}
+              className="rounded-full border border-ink/20 bg-paper px-2.5 py-1 text-xs font-medium text-ink"
+            >
+              {FIRM_RELATIONSHIP_STAGES.map((s) => (
+                <option key={s} value={s}>
+                  {stageLabels[s]}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="rounded-full bg-ox/10 px-2.5 py-1 text-xs font-medium text-ox">
+              {stageLabels[firm.relationship_stage]}
+            </span>
+          )}
+        </div>
+      </div>
 
       {error && (
         <div className="mt-4 rounded-lg border border-ox/30 bg-ox/5 p-3 text-sm text-ox">
@@ -173,6 +216,10 @@ export function FirmDetailPage() {
             <Field label="Practice areas" value={firm.practice_areas.join(', ')} />
           </dl>
         )}
+      </div>
+
+      <div className="mt-6 rounded-lg border border-ink/10 bg-paper p-5">
+        <FirmContacts firmId={firm.id} />
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-6">

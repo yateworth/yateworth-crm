@@ -5,6 +5,14 @@ import { FirmForm } from '@/components/FirmForm'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchFirms, createFirm, emptyFirmForm, type Firm, type FirmFormValues, type RecordStatus } from '@/lib/firms'
 
+const stageLabels: Record<string, string> = {
+  prospect: 'Prospect',
+  contacted: 'Contacted',
+  terms_sent: 'Terms sent',
+  terms_signed: 'Terms signed',
+  dormant: 'Dormant',
+}
+
 export function FirmsPage() {
   const { profile } = useAuth()
   const canManage = profile?.role === 'admin' || profile?.role === 'recruiter'
@@ -104,6 +112,7 @@ export function FirmsPage() {
               <thead className="border-b border-ink/10 text-left text-sec">
                 <tr>
                   <th className="p-3 font-medium">Name</th>
+                  <th className="p-3 font-medium">Relationship</th>
                   <th className="p-3 font-medium">Phone</th>
                   <th className="p-3 font-medium">Size</th>
                   <th className="p-3 font-medium">Practice areas</th>
@@ -117,6 +126,7 @@ export function FirmsPage() {
                         {firm.name}
                       </Link>
                     </td>
+                    <td className="p-3 text-sec">{stageLabels[firm.relationship_stage]}</td>
                     <td className="p-3 text-sec">{firm.main_phone ?? '—'}</td>
                     <td className="p-3 text-sec">{firm.size_band ?? '—'}</td>
                     <td className="p-3 text-sec">{firm.practice_areas.join(', ') || '—'}</td>

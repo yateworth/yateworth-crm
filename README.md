@@ -482,6 +482,24 @@ npm run validate     # typecheck + lint + test + build, in order
     arbitrary-condition segment builder is a lot more machinery than
     three list types need right now; a fourth kind is a small addition
     to the same function later, not a rewrite.
+- **Firm contacts and a firm-level relationship stage** (migration 22).
+  Two gaps raised directly by the user: firms had no way to record the
+  actual people at them (HR manager, hiring partner), and no field
+  tracked the agency's standing commercial relationship with a firm
+  separately from job-level pipeline. New `firm_contacts` join table
+  reuses `people` rather than a parallel contact record - so a firm
+  contact automatically gets activities/tasks, and (since it's the same
+  `email_addresses` table the mailing-list segments already read from)
+  is automatically eligible for mailouts too, no separate system needed.
+  `create_firm_contact()` mirrors `create_candidate()`'s exact shape,
+  including reusing an existing email rather than creating a duplicate
+  person. New `relationship_stage` enum column on `firms` (prospect →
+  contacted → terms sent → terms signed → dormant) - kept deliberately
+  separate from `job_status`/`submission_stage`, which track per-role
+  pipeline and already existed; one firm can have many jobs under a
+  single standing agreement, which is exactly why this needed its own
+  field rather than reusing job status. `FirmDetail` shows/edits both;
+  the firms list shows the stage as a column.
 - **Gmail sync — in progress**, full plan in `docs/crm-functionality-plan.md`
   under "Gmail sync (separate initiative)". `gmail_connections` table is
   live: holds OAuth tokens, deliberately has zero policies for any client
