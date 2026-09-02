@@ -21,6 +21,16 @@ Built per `docs/Recruitment_CRM_Build_Specification.md`, in gated phases.
   so an opt-out between preview and send is actually caught. Sending goes
   through a fake email provider (`netlify/functions/_shared/emailProvider.ts`)
   since no real provider account exists yet.
+- **Milestone 5 (unsubscribe + bounce/complaint)** — done. A public,
+  no-login unsubscribe endpoint using signed tokens; bounce/complaint
+  webhook processing that's genuinely signature-verified (a made-up but
+  real HMAC scheme on the fake provider — swap for the real vendor's when
+  one exists) and idempotent (a duplicate webhook delivery has no
+  duplicate effect); a hard bounce or complaint blocks every purpose;
+  three soft bounces in 30 days trigger the same. **Spec deviation,
+  disclosed**: `record_unsubscribe` takes an already-verified email
+  identity rather than a raw token — see the note at the top of
+  migration 12.
 
 Connected to a real (free-tier) Supabase project. Not connected yet:
 Netlify (as a deployed site — the functions exist but aren't hosted
@@ -40,7 +50,12 @@ Level Security).
   reach the browser). `health.ts` confirms env vars are set;
   `send-campaign-batch.ts` claims and "sends" a campaign batch through
   the fake provider, gated to an active admin/marketing session;
-  `_shared/emailProvider.ts` is the fake provider adapter.
+  `unsubscribe.ts` is the public no-login unsubscribe endpoint;
+  `email-webhook.ts` receives and verifies bounce/complaint/delivery
+  events; `_shared/emailProvider.ts` is the fake provider adapter (real
+  signature verification, fake sending); `_shared/unsubscribeToken.ts`
+  signs/verifies the unsubscribe links, unit-tested against tampering and
+  expiry.
 - `supabase/migrations/` — extensions/enums, `profiles` + roles + RLS,
   audit logging, the minimal `firms`/`people`/`email_addresses`/
   `candidate_profiles` tables needed to seed fictional data, an
@@ -51,21 +66,24 @@ Level Security).
   `survey_options`, `survey_responses`, `survey_answers`,
   `report_requests`, `get_active_survey()`, `submit_survey_response()`,
   `submit_permission_request()`) plus the real Legal Survey question data,
-  and campaigns (`mailing_lists`, `email_templates`, `campaigns`,
+  campaigns (`mailing_lists`, `email_templates`, `campaigns`,
   `campaign_recipients`, `email_messages`, `email_events`,
   `generate_campaign_recipients()`, `claim_campaign_batch()`,
-  `record_email_sent()`).
+  `record_email_sent()`), and unsubscribe/bounce processing
+  (`record_unsubscribe()`, `process_email_event()`).
 - `supabase/seed/seed.sql` — fictional firms/people/candidates only.
 - `supabase/tests/permission_ledger.sql`, `supabase/tests/anonymous_survey.sql`,
-  `supabase/tests/campaigns.sql` — SQL assertions run against the real
-  database (see "Testing against the live database" below), including a
+  `supabase/tests/campaigns.sql`, `supabase/tests/unsubscribe_and_bounces.sql`
+  — SQL assertions run against the real database (see "Testing against the
+  live database" below), including a
   schema-level proof that
   `survey_responses`/`survey_answers` carry no identity column and
   `report_requests` carries no survey-response reference.
 
-Nothing beyond this exists yet — no jobs, submissions, unsubscribe/bounce
-webhook processing, real email sending, or Apollo integration. Those land
-in the rest of Phase 1 (Milestones 5-6) and Phase 2 per the spec.
+Nothing beyond this exists yet — no jobs, submissions, real email sending
+(the fake provider is used everywhere), report delivery, or Apollo
+integration. Those land in the rest of Phase 1 (Milestone 6) and Phase 2
+per the spec.
 
 ## Getting this running for real
 
@@ -231,8 +249,7 @@ npm run validate     # typecheck + lint + test + build, in order
 
 ## What's still ahead (see the spec for full detail)
 
-- **Phase 1 remaining**: unsubscribe flow, bounce/complaint webhook
-  processing (Milestone 5), report delivery + safe aggregate reporting
+- **Phase 1 remaining**: report delivery + safe aggregate reporting
   (Milestone 6), Apollo staging, CSV import/export.
 - **Phase 2**: full candidate/firm/job CRM, matching, Apollo promotion,
   duplicate detection.

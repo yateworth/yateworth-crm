@@ -28,11 +28,26 @@ export function getApolloEnv() {
   return { apolloApiKey: required('APOLLO_API_KEY') }
 }
 
-/** Lazily validated — only functions that actually send email need this. */
+/** Lazily validated — only functions that actually send real email need this. */
 export function getEmailProviderEnv() {
   return {
     provider: required('EMAIL_PROVIDER'),
     apiKey: required('EMAIL_PROVIDER_API_KEY'),
     webhookSecret: required('EMAIL_WEBHOOK_SECRET'),
   }
+}
+
+/**
+ * Separate from getEmailProviderEnv() because the fake provider (used
+ * until a real EMAIL_PROVIDER_API_KEY exists) still needs a webhook
+ * secret to verify signatures, without requiring the other two vars
+ * that a real provider integration would need.
+ */
+export function getEmailWebhookSecret() {
+  return required('EMAIL_WEBHOOK_SECRET')
+}
+
+/** Lazily validated — only the unsubscribe endpoint needs this. */
+export function getUnsubscribeTokenSecret() {
+  return required('UNSUBSCRIBE_TOKEN_SECRET')
 }

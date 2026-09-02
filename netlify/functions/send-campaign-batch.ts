@@ -1,6 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSupabaseAdmin } from './_shared/supabaseAdmin'
 import { createFakeEmailProvider } from './_shared/emailProvider'
+import { getEmailWebhookSecret } from './_shared/env'
 
 /**
  * Claims a batch of pending recipients for a campaign, "sends" each one
@@ -77,7 +78,7 @@ export default async (req: Request, _context: Context) => {
     return Response.json({ error: claimError.message }, { status: 500 })
   }
 
-  const provider = createFakeEmailProvider()
+  const provider = createFakeEmailProvider(getEmailWebhookSecret())
   let sent = 0
   const failures: string[] = []
 
