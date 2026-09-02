@@ -76,7 +76,7 @@ export function TaskList({ subjectType, subjectId }: Props) {
         <button
           type="submit"
           disabled={submitting || !title.trim()}
-          className="rounded-md border-2 border-ox bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
+          className="rounded-lg border-2 border-ox bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
         >
           Add
         </button>

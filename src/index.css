@@ -20,6 +20,14 @@
   --color-brass: #e3b463; /* brass: on dark grounds only */
   --color-art: #7e9b8b;
 
+  /* Semantic status colours (CRM-only, not on the marketing site): the
+     brand palette above covers identity/actions but has no clear
+     "positive" tone distinct from ox (which already does double duty as
+     the app's danger/attention colour) - success fills that specific
+     gap for won/paid/active-style states. Used at low opacity
+     (bg-success/15 etc.) for badges, full strength for numbers/icons. */
+  --color-success: #2d6a4f;
+
   --font-display: "Source Serif 4", Georgia, "Times New Roman", serif;
   --font-sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
 }

@@ -4,6 +4,7 @@ import { Layout } from '@/components/Layout'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchJobs, createJob, emptyJobForm, type JobWithFirm, type JobFormValues } from '@/lib/jobs'
 import { fetchFirms, type Firm } from '@/lib/firms'
+import { StatusBadge, jobStatusTone } from '@/components/StatusBadge'
 
 export function JobsPage() {
   const { profile } = useAuth()
@@ -62,7 +63,7 @@ export function JobsPage() {
         {canManage && (
           <button
             onClick={() => setShowForm((s) => !s)}
-            className="rounded-md border-2 border-ox bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift"
+            className="rounded-lg border-2 border-ox bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift"
           >
             {showForm ? 'Cancel' : 'Add job'}
           </button>
@@ -205,7 +206,7 @@ export function JobsPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-md border-2 border-ox bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
+            className="rounded-lg border-2 border-ox bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
           >
             {submitting ? 'Saving…' : 'Save job'}
           </button>
@@ -238,7 +239,9 @@ export function JobsPage() {
                     </td>
                     <td className="p-3 text-sec">{job.firms?.name ?? '—'}</td>
                     <td className="p-3 text-sec">{job.practice_area ?? '—'}</td>
-                    <td className="p-3 text-sec">{job.status}</td>
+                    <td className="p-3">
+                      <StatusBadge label={job.status.replace('_', ' ')} tone={jobStatusTone[job.status] ?? 'neutral'} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

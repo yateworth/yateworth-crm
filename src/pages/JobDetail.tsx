@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import { FileAttachments } from '@/components/FileAttachments'
+import { StatusBadge, jobStatusTone, submissionStageTone } from '@/components/StatusBadge'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchJob, setJobStatus, type JobWithFirm, type JobStatus } from '@/lib/jobs'
 import {
@@ -120,19 +121,22 @@ export function JobDetailPage() {
           <h1 className="font-display text-lg font-semibold text-ink">{job.title}</h1>
           <p className="text-sm text-sec">{job.firms?.name}</p>
         </div>
-        {canManage && (
-          <select
-            value={job.status}
-            onChange={(e) => handleStatusChange(e.target.value as JobStatus)}
-            className="rounded-md border border-ink/20 bg-paper px-3 py-1.5 text-sm capitalize"
-          >
-            {JOB_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s.replace('_', ' ')}
-              </option>
-            ))}
-          </select>
-        )}
+        <div className="flex items-center gap-3">
+          <StatusBadge label={job.status.replace('_', ' ')} tone={jobStatusTone[job.status] ?? 'neutral'} />
+          {canManage && (
+            <select
+              value={job.status}
+              onChange={(e) => handleStatusChange(e.target.value as JobStatus)}
+              className="rounded-md border border-ink/20 bg-paper px-3 py-1.5 text-sm capitalize"
+            >
+              {JOB_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s.replace('_', ' ')}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -156,7 +160,7 @@ export function JobDetailPage() {
           <button
             onClick={handleAddCandidate}
             disabled={!selectedCandidateId}
-            className="rounded-md border-2 border-ox bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
+            className="rounded-lg border-2 border-ox bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
           >
             Add
           </button>
@@ -167,11 +171,20 @@ export function JobDetailPage() {
         <div className="flex gap-4" style={{ minWidth: SUBMISSION_STAGES.length * 200 }}>
           {SUBMISSION_STAGES.map((stage) => {
             const stageSubmissions = submissions.filter((s) => s.stage === stage)
+            const tone = submissionStageTone[stage] ?? 'neutral'
+            const columnBorder: Record<string, string> = {
+              success: 'border-t-success',
+              danger: 'border-t-ox',
+              warning: 'border-t-brass',
+              info: 'border-t-art',
+              neutral: 'border-t-ink/20',
+            }
             return (
-              <div key={stage} className="w-48 shrink-0">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-sec">
-                  {stage} <span className="text-ink/40">({stageSubmissions.length})</span>
-                </h3>
+              <div key={stage} className={`w-48 shrink-0 border-t-4 pt-2 ${columnBorder[tone]}`}>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-sec">{stage}</h3>
+                  <StatusBadge label={String(stageSubmissions.length)} tone={tone} />
+                </div>
                 <div className="mt-2 space-y-2">
                   {stageSubmissions.map((s) => (
                     <div key={s.id} className="rounded-lg border border-ink/10 bg-paper p-3">

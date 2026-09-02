@@ -6,6 +6,7 @@ import { ActivityFeed } from '@/components/ActivityFeed'
 import { TaskList } from '@/components/TaskList'
 import { SendEmailForm } from '@/components/SendEmailForm'
 import { FileAttachments } from '@/components/FileAttachments'
+import { StatusBadge, candidateStatusTone, submissionStageTone } from '@/components/StatusBadge'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchSubmissionsForCandidate, type SubmissionWithJob } from '@/lib/submissions'
 import {
@@ -150,7 +151,7 @@ export function CandidateDetailPage() {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="rounded-md bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
+                  className="rounded-lg bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
                 >
                   {saving ? 'Saving…' : 'Save'}
                 </button>
@@ -171,7 +172,7 @@ export function CandidateDetailPage() {
                 </button>
                 <button
                   onClick={() => setEditing(true)}
-                  className="rounded-md bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift"
+                  className="rounded-lg bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift"
                 >
                   Edit
                 </button>
@@ -187,9 +188,12 @@ export function CandidateDetailPage() {
             Archived
           </span>
         )}
-        <span className="inline-block rounded-full bg-tint px-2.5 py-1 text-xs font-medium text-sec">
-          {profileData?.candidate_status}
-        </span>
+        {profileData?.candidate_status && (
+          <StatusBadge
+            label={profileData.candidate_status}
+            tone={candidateStatusTone[profileData.candidate_status] ?? 'neutral'}
+          />
+        )}
       </div>
 
       {error && (
@@ -286,7 +290,7 @@ export function CandidateDetailPage() {
                 <span className="text-ink">
                   {s.jobs?.title} <span className="text-sec">— {s.jobs?.firms?.name}</span>
                 </span>
-                <span className="text-xs font-medium uppercase tracking-wide text-sec">{s.stage}</span>
+                <StatusBadge label={s.stage} tone={submissionStageTone[s.stage] ?? 'neutral'} />
               </li>
             ))}
           </ul>

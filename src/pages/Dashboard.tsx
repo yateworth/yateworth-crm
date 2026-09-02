@@ -15,6 +15,7 @@ import { fetchSurveys, type SurveyListItem } from '@/lib/surveys'
 import { fetchInsightsDashboard, type InsightsDashboard } from '@/lib/insights'
 import { fetchJobsPipeline, type JobsPipeline } from '@/lib/jobs'
 import { ChatAssistant } from '@/components/ChatAssistant'
+import { StatusBadge } from '@/components/StatusBadge'
 
 const SURVEY_SLUG = 'australian-legal-survey'
 
@@ -136,42 +137,47 @@ export function DashboardPage() {
           <section>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-sec">Jobs pipeline</h2>
             <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div className="rounded-lg border border-ink/10 bg-paper p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Open jobs</p>
-                <p className="mt-1 text-xl font-bold text-ink">{pipeline.totals.open_count}</p>
+              <div className="rounded-lg border border-art/30 bg-art/10 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Open jobs</p>
+                <p className="mt-1 text-2xl font-bold text-ink">{pipeline.totals.open_count}</p>
               </div>
-              <div className="rounded-lg border border-ink/10 bg-paper p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Est. pipeline value</p>
-                <p className="mt-1 text-xl font-bold text-ink">{money(pipeline.totals.open_estimated_value)}</p>
+              <div className="rounded-lg border border-brass/40 bg-brass/15 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Est. pipeline value</p>
+                <p className="mt-1 text-2xl font-bold text-ink">{money(pipeline.totals.open_estimated_value)}</p>
               </div>
-              <div className="rounded-lg border border-ink/10 bg-paper p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-ink/40">
+              <div className="rounded-lg border border-ink/15 bg-paper p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">
                   Closed jobs won
                 </p>
-                <p className="mt-1 text-xl font-bold text-ink">
+                <p className="mt-1 text-2xl font-bold text-ink">
                   {pipeline.totals.won_count} / {pipeline.totals.closed_count}
                 </p>
               </div>
-              <div className="rounded-lg border border-ink/10 bg-paper p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Fees won</p>
-                <p className="mt-1 text-xl font-bold text-ox">{money(pipeline.totals.won_fee_total)}</p>
+              <div className="rounded-lg border border-success/40 bg-success/15 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Fees won</p>
+                <p className="mt-1 text-2xl font-bold text-success">{money(pipeline.totals.won_fee_total)}</p>
               </div>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="rounded-lg border border-ink/10 bg-paper p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Open</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Open</p>
                 {pipeline.open_jobs.length === 0 ? (
                   <p className="mt-2 text-sm text-ink/40">No open jobs.</p>
                 ) : (
-                  <ul className="mt-2 space-y-1.5 text-sm">
+                  <ul className="mt-2 space-y-2 text-sm">
                     {pipeline.open_jobs.map((j) => (
-                      <li key={j.job_id} className="flex items-baseline justify-between gap-2">
+                      <li
+                        key={j.job_id}
+                        className="flex items-center justify-between gap-2 rounded-md border-l-4 border-art bg-art/5 px-3 py-2"
+                      >
                         <Link to={`/jobs/${j.job_id}`} className="text-ink hover:underline">
                           {j.title} <span className="text-xs text-ink/40">— {j.firm_name}</span>
                         </Link>
-                        <span className="shrink-0 text-xs text-sec">
-                          {j.opened_at ? new Date(j.opened_at).toLocaleDateString() : '—'} · {money(j.estimated_value)}
+                        <span className="shrink-0 text-right text-xs text-sec">
+                          {j.opened_at ? new Date(j.opened_at).toLocaleDateString() : '—'}
+                          <br />
+                          <span className="font-semibold text-ink">{money(j.estimated_value)}</span>
                         </span>
                       </li>
                     ))}
@@ -179,22 +185,29 @@ export function DashboardPage() {
                 )}
               </div>
               <div className="rounded-lg border border-ink/10 bg-paper p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Closed</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Closed</p>
                 {pipeline.closed_jobs.length === 0 ? (
                   <p className="mt-2 text-sm text-ink/40">No closed jobs.</p>
                 ) : (
-                  <ul className="mt-2 space-y-1.5 text-sm">
+                  <ul className="mt-2 space-y-2 text-sm">
                     {pipeline.closed_jobs.map((j) => (
-                      <li key={j.job_id} className="flex items-baseline justify-between gap-2">
+                      <li
+                        key={j.job_id}
+                        className={`flex items-center justify-between gap-2 rounded-md border-l-4 px-3 py-2 ${
+                          j.won ? 'border-success bg-success/5' : 'border-ink/15 bg-ink/5'
+                        }`}
+                      >
                         <Link to={`/jobs/${j.job_id}`} className="text-ink hover:underline">
                           {j.title} <span className="text-xs text-ink/40">— {j.firm_name}</span>
                         </Link>
-                        <span className="shrink-0 text-xs">
-                          {j.closed_at ? new Date(j.closed_at).toLocaleDateString() : '—'} ·{' '}
+                        <span className="flex shrink-0 flex-col items-end gap-1 text-xs">
+                          <span className="text-ink/40">
+                            {j.closed_at ? new Date(j.closed_at).toLocaleDateString() : '—'}
+                          </span>
                           {j.won ? (
-                            <span className="text-ox">won {money(j.fee_amount)}</span>
+                            <StatusBadge label={`Won · ${money(j.fee_amount)}`} tone="success" />
                           ) : (
-                            <span className="text-ink/40">not won</span>
+                            <StatusBadge label="Not won" tone="neutral" />
                           )}
                         </span>
                       </li>

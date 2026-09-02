@@ -136,7 +136,7 @@ export function CampaignDetailPage() {
                 <button
                   onClick={() => run(() => approveCampaign(campaign.id))}
                   disabled={busy}
-                  className="rounded-md border-2 border-ox bg-ox px-3 py-1.5 text-sm font-medium text-white hover:bg-ox-lift disabled:opacity-50"
+                  className="rounded-lg border-2 border-ox bg-ox px-4 py-2 text-sm font-semibold text-white hover:bg-ox-lift disabled:opacity-50"
                 >
                   Approve &amp; schedule
                 </button>
@@ -150,7 +150,7 @@ export function CampaignDetailPage() {
                   <button
                     onClick={handleSendBatch}
                     disabled={busy}
-                    className="rounded-md border-2 border-ox bg-ox px-3 py-1.5 text-sm font-medium text-white hover:bg-ox-lift disabled:opacity-50"
+                    className="rounded-lg border-2 border-ox bg-ox px-4 py-2 text-sm font-semibold text-white hover:bg-ox-lift disabled:opacity-50"
                   >
                     Send next batch
                   </button>
@@ -177,7 +177,7 @@ export function CampaignDetailPage() {
                 <button
                   onClick={() => run(() => setCampaignStatus(campaign.id, 'scheduled'))}
                   disabled={busy}
-                  className="rounded-md border-2 border-ox bg-ox px-3 py-1.5 text-sm font-medium text-white hover:bg-ox-lift disabled:opacity-50"
+                  className="rounded-lg border-2 border-ox bg-ox px-4 py-2 text-sm font-semibold text-white hover:bg-ox-lift disabled:opacity-50"
                 >
                   Resume
                 </button>

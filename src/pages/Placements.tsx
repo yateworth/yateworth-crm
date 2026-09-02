@@ -10,19 +10,13 @@ import {
   type PlaceableSubmission,
   type InvoiceStatus,
 } from '@/lib/placements'
+import { TONE_CLASSES, invoiceStatusTone } from '@/components/StatusBadge'
 
 const invoiceStatusLabels: Record<InvoiceStatus, string> = {
   not_invoiced: 'Not invoiced',
   invoiced: 'Invoiced',
   paid: 'Paid',
   written_off: 'Written off',
-}
-
-const invoiceStatusClass: Record<InvoiceStatus, string> = {
-  not_invoiced: 'bg-ink/10 text-ink/60',
-  invoiced: 'bg-brass/20 text-brass',
-  paid: 'bg-ox/20 text-ox',
-  written_off: 'bg-ink/10 text-ink/40',
 }
 
 function money(value: number | null): string {
@@ -106,7 +100,7 @@ export function PlacementsPage() {
         {placeable.length > 0 && (
           <button
             onClick={() => setShowForm((s) => !s)}
-            className="rounded-md bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift"
+            className="rounded-lg bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift"
           >
             {showForm ? 'Cancel' : 'Record placement'}
           </button>
@@ -114,17 +108,17 @@ export function PlacementsPage() {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-ink/10 bg-paper p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Total placements</p>
-          <p className="mt-1 text-xl font-bold text-ink">{placements.length}</p>
+        <div className="rounded-lg border border-art/30 bg-art/10 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Total placements</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{placements.length}</p>
         </div>
-        <div className="rounded-lg border border-ink/10 bg-paper p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Total fees</p>
-          <p className="mt-1 text-xl font-bold text-ink">{money(totalFees)}</p>
+        <div className="rounded-lg border border-success/40 bg-success/15 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Total fees</p>
+          <p className="mt-1 text-2xl font-bold text-success">{money(totalFees)}</p>
         </div>
-        <div className="rounded-lg border border-ink/10 bg-paper p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-ink/40">Outstanding</p>
-          <p className="mt-1 text-xl font-bold text-ox">{money(outstandingFees)}</p>
+        <div className="rounded-lg border border-ox/30 bg-ox/10 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Outstanding</p>
+          <p className="mt-1 text-2xl font-bold text-ox">{money(outstandingFees)}</p>
         </div>
       </div>
 
@@ -206,7 +200,7 @@ export function PlacementsPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-md bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
+            className="rounded-lg bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
           >
             {submitting ? 'Saving…' : 'Save placement'}
           </button>
@@ -251,7 +245,7 @@ export function PlacementsPage() {
                         <select
                           value={p.invoice_status}
                           onChange={(e) => handleStatusChange(p.id, e.target.value as InvoiceStatus)}
-                          className={`rounded-full border-0 px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide ${invoiceStatusClass[p.invoice_status]}`}
+                          className={`rounded-full border-0 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${TONE_CLASSES[invoiceStatusTone[p.invoice_status]]}`}
                         >
                           {INVOICE_STATUSES.map((s) => (
                             <option key={s} value={s}>

@@ -4,6 +4,7 @@ import { Layout } from '@/components/Layout'
 import { FirmForm } from '@/components/FirmForm'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchFirms, createFirm, emptyFirmForm, type Firm, type FirmFormValues, type RecordStatus } from '@/lib/firms'
+import { StatusBadge, relationshipStageTone } from '@/components/StatusBadge'
 
 const stageLabels: Record<string, string> = {
   prospect: 'Prospect',
@@ -77,7 +78,7 @@ export function FirmsPage() {
         {canManage && (
           <button
             onClick={() => setShowForm((s) => !s)}
-            className="rounded-md bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift"
+            className="rounded-lg bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift"
           >
             {showForm ? 'Cancel' : 'Add firm'}
           </button>
@@ -94,7 +95,7 @@ export function FirmsPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-md bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
+            className="rounded-lg bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
           >
             {submitting ? 'Saving…' : 'Save firm'}
           </button>
@@ -126,7 +127,12 @@ export function FirmsPage() {
                         {firm.name}
                       </Link>
                     </td>
-                    <td className="p-3 text-sec">{stageLabels[firm.relationship_stage]}</td>
+                    <td className="p-3">
+                      <StatusBadge
+                        label={stageLabels[firm.relationship_stage]}
+                        tone={relationshipStageTone[firm.relationship_stage] ?? 'neutral'}
+                      />
+                    </td>
                     <td className="p-3 text-sec">{firm.main_phone ?? '—'}</td>
                     <td className="p-3 text-sec">{firm.size_band ?? '—'}</td>
                     <td className="p-3 text-sec">{firm.practice_areas.join(', ') || '—'}</td>

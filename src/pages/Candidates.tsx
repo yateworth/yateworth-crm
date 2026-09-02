@@ -14,6 +14,7 @@ import {
   type CandidateFormValues,
   type RecordStatus,
 } from '@/lib/candidates'
+import { StatusBadge, candidateStatusTone } from '@/components/StatusBadge'
 
 const stageLabels: Record<string, string> = {
   prospective: 'Prospective',
@@ -108,7 +109,7 @@ export function CandidatesPage() {
         {canManage && (
           <button
             onClick={() => setShowForm((s) => !s)}
-            className="rounded-md bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift"
+            className="rounded-lg bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift"
           >
             {showForm ? 'Cancel' : 'Add candidate'}
           </button>
@@ -125,7 +126,7 @@ export function CandidatesPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-md bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
+            className="rounded-lg bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
           >
             {submitting ? 'Saving…' : 'Save candidate'}
           </button>
@@ -164,7 +165,14 @@ export function CandidatesPage() {
                     <td className="p-3 text-sec">
                       {c.candidate_profiles?.practice_areas.join(', ') || '—'}
                     </td>
-                    <td className="p-3 text-sec">{c.candidate_profiles?.candidate_status}</td>
+                    <td className="p-3">
+                      {c.candidate_profiles?.candidate_status && (
+                        <StatusBadge
+                          label={c.candidate_profiles.candidate_status}
+                          tone={candidateStatusTone[c.candidate_profiles.candidate_status] ?? 'neutral'}
+                        />
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -175,11 +183,22 @@ export function CandidatesPage() {
             <div className="flex gap-4" style={{ minWidth: CANDIDATE_STATUSES.length * 220 }}>
               {CANDIDATE_STATUSES.map((stage) => {
                 const stageCandidates = candidates.filter((c) => c.candidate_profiles?.candidate_status === stage)
+                const tone = candidateStatusTone[stage] ?? 'neutral'
+                const columnBorder: Record<string, string> = {
+                  success: 'border-t-success',
+                  danger: 'border-t-ox',
+                  warning: 'border-t-brass',
+                  info: 'border-t-art',
+                  neutral: 'border-t-ink/20',
+                }
                 return (
-                  <div key={stage} className="w-52 shrink-0">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-sec">
-                      {stageLabels[stage]} <span className="text-ink/40">({stageCandidates.length})</span>
-                    </h3>
+                  <div key={stage} className={`w-52 shrink-0 border-t-4 pt-2 ${columnBorder[tone]}`}>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-sec">
+                        {stageLabels[stage]}
+                      </h3>
+                      <StatusBadge label={String(stageCandidates.length)} tone={tone} />
+                    </div>
                     <div className="mt-2 space-y-2">
                       {stageCandidates.map((c) => (
                         <div key={c.id} className="rounded-lg border border-ink/10 bg-paper p-3">

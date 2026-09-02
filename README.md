@@ -500,6 +500,26 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
+- **UX pass: bigger buttons, colour-coded status everywhere, a clearer
+  nav** - direct feedback that navigation wasn't easy and status was
+  hard to scan. New `--color-success` theme token (the brand palette is
+  oxblood + brass + sage - functional but had no clear "positive" tone
+  distinct from ox, which already doubles as the app's danger/attention
+  colour) and a shared `StatusBadge` component with per-domain tone maps
+  (job status, candidate status, invoice status, firm relationship
+  stage, submission stage) so the same status always reads the same
+  colour everywhere it appears, not just in the one place it happened to
+  be built first. Applied across Jobs/Candidates/Firms/Placements lists
+  and detail pages, plus both kanban boards (candidate pipeline, job
+  submissions), which now also get a colour-coded top border per column.
+  Nav rebuilt as filled pills with a real active state instead of a thin
+  underline, bigger touch targets throughout, primary buttons bumped
+  from `px-3 py-1.5` to `px-4 py-2` with heavier weight app-wide. The
+  jobs pipeline dashboard section (built last turn) got the heaviest
+  treatment as the direct example given - tinted totals cards, a
+  coloured left border per job row, won/not-won badges - everything else
+  above follows the same StatusBadge pattern for consistency rather than
+  one-off colours per screen.
 - **Jobs pipeline on the dashboard** (migration 28) - open jobs with an
   estimated value (fee_percent against salary - the real fee isn't known
   until a placement exists), and closed jobs showing whether they were

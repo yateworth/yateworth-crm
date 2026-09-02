@@ -4,8 +4,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `border-b-2 pb-1 text-sm font-medium transition-colors ${
-    isActive ? 'border-brass text-ground' : 'border-transparent text-ground/70 hover:text-ground'
+  `rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+    isActive ? 'bg-brass text-ink' : 'text-ground/75 hover:bg-ground/10 hover:text-ground'
   }`
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -13,12 +13,12 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-ground">
-      <header className="sticky top-0 z-40 bg-ink text-ground">
-        <div className="mx-auto flex max-w-5xl items-center gap-8 px-6" style={{ minHeight: 72 }}>
+      <header className="sticky top-0 z-40 bg-ink text-ground shadow-sm">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
           <span className="font-display text-xl font-bold tracking-tight">
             Yateworth<span className="text-brass">.</span>
           </span>
-          <nav className="flex items-center gap-6">
+          <nav className="flex flex-wrap items-center gap-1">
             <NavLink to="/" end className={navLinkClass}>
               Dashboard
             </NavLink>
@@ -47,14 +47,14 @@ export function Layout({ children }: { children: ReactNode }) {
             </span>
             <button
               onClick={() => supabase.auth.signOut()}
-              className="text-sm text-ground/70 hover:text-brass"
+              className="rounded-lg px-3 py-2 text-sm font-semibold text-ground/75 transition-colors hover:bg-ground/10 hover:text-ground"
             >
               Sign out
             </button>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl p-8">{children}</main>
+      <main className="mx-auto max-w-6xl p-8">{children}</main>
     </div>
   )
 }

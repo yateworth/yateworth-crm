@@ -18,6 +18,7 @@ import {
   type Firm,
   type FirmFormValues,
 } from '@/lib/firms'
+import { StatusBadge, TONE_CLASSES, relationshipStageTone } from '@/components/StatusBadge'
 
 const stageLabels: Record<string, string> = {
   prospect: 'Prospect',
@@ -136,7 +137,7 @@ export function FirmDetailPage() {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="rounded-md bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
+                  className="rounded-lg bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
                 >
                   {saving ? 'Saving…' : 'Save'}
                 </button>
@@ -151,7 +152,7 @@ export function FirmDetailPage() {
                 </button>
                 <button
                   onClick={() => setEditing(true)}
-                  className="rounded-md bg-ox px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-ox-lift"
+                  className="rounded-lg bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift"
                 >
                   Edit
                 </button>
@@ -173,7 +174,7 @@ export function FirmDetailPage() {
             <select
               value={firm.relationship_stage}
               onChange={(e) => handleStageChange(e.target.value as (typeof FIRM_RELATIONSHIP_STAGES)[number])}
-              className="rounded-full border border-ink/20 bg-paper px-2.5 py-1 text-xs font-medium text-ink"
+              className={`rounded-full border-0 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${TONE_CLASSES[relationshipStageTone[firm.relationship_stage] ?? 'neutral']}`}
             >
               {FIRM_RELATIONSHIP_STAGES.map((s) => (
                 <option key={s} value={s}>
@@ -182,9 +183,10 @@ export function FirmDetailPage() {
               ))}
             </select>
           ) : (
-            <span className="rounded-full bg-ox/10 px-2.5 py-1 text-xs font-medium text-ox">
-              {stageLabels[firm.relationship_stage]}
-            </span>
+            <StatusBadge
+              label={stageLabels[firm.relationship_stage]}
+              tone={relationshipStageTone[firm.relationship_stage] ?? 'neutral'}
+            />
           )}
         </div>
       </div>
