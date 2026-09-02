@@ -154,7 +154,7 @@ export async function createFirmContact(firmId: string, input: CreateFirmContact
     p_firm_id: firmId,
     p_first_name: input.firstName,
     p_last_name: input.lastName,
-    p_email: input.email,
+    p_email: input.email || undefined,
     p_phone: input.phone || undefined,
     p_role_title: input.roleTitle || undefined,
     p_is_primary: input.isPrimary,

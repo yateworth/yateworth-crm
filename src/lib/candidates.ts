@@ -123,7 +123,7 @@ export async function createCandidate(values: CandidateFormValues): Promise<stri
   const { data, error } = await supabase.rpc('create_candidate', {
     p_first_name: values.firstName,
     p_last_name: values.lastName,
-    p_email: values.email,
+    p_email: values.email || undefined,
     p_phone: values.phone || undefined,
     p_location: values.location || undefined,
     p_current_title: values.currentTitle || undefined,

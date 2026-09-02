@@ -96,9 +96,8 @@ export function FirmContacts({ firmId }: { firmId: string }) {
               className="rounded-md border border-ink/20 px-2 py-1 text-sm"
             />
             <input
-              required
               type="email"
-              placeholder="Email"
+              placeholder="Email (optional)"
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
               className="rounded-md border border-ink/20 px-2 py-1 text-sm"

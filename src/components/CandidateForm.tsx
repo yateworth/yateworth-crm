@@ -50,7 +50,7 @@ export function CandidateForm({ values, onChange, emailDisabled }: Props) {
           {textField('firstName', 'c-first', 'First name', { required: true })}
           {textField('lastName', 'c-last', 'Last name', { required: true })}
           {textField('preferredName', 'c-preferred', 'Preferred name')}
-          {textField('email', 'c-email', 'Email', { type: 'email', required: true })}
+          {textField('email', 'c-email', 'Email (optional)', { type: 'email' })}
           {textField('phone', 'c-phone', 'Phone')}
           {textField('linkedinUrl', 'c-linkedin', 'LinkedIn URL')}
           {textField('location', 'c-location', 'Location')}

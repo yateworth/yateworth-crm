@@ -8,7 +8,7 @@ interface ChatMessage {
   outcomes?: (string | null)[]
 }
 
-function describeAction(action: QuickAddAction): { title: string; detail: string; warning?: string } {
+function describeAction(action: QuickAddAction): { title: string; detail: string; note?: string; blocked?: string } {
   if (action.type === 'create_candidate') {
     const bits = [action.currentTitle, action.yearsPqe != null ? `${action.yearsPqe} PQE` : null]
       .filter(Boolean)
@@ -18,7 +18,7 @@ function describeAction(action: QuickAddAction): { title: string; detail: string
       detail:
         [bits, action.email].filter(Boolean).join(' — ') +
         (action.activityNote ? ` · logs: "${action.activityNote}"` : ''),
-      warning: action.email ? undefined : 'No email — reply with one to enable this.',
+      note: action.email ? undefined : 'No email yet — fine to add later, or type one below now.',
     }
   }
   if (action.type === 'create_firm_contact') {
@@ -28,13 +28,13 @@ function describeAction(action: QuickAddAction): { title: string; detail: string
       detail:
         `At ${firm}${action.email ? ` — ${action.email}` : ''}` +
         (action.activityNote ? ` · logs: "${action.activityNote}"` : ''),
-      warning: action.email ? undefined : 'No email — reply with one to enable this.',
+      note: action.email ? undefined : 'No email yet — fine to add later, or type one below now.',
     }
   }
   return {
     title: `Log activity: ${action.targetMatch ? action.targetMatch.name : action.targetQuery}`,
     detail: action.body,
-    warning: action.targetMatch ? undefined : `Couldn't find "${action.targetQuery}" in the CRM.`,
+    blocked: action.targetMatch ? undefined : `Couldn't find "${action.targetQuery}" in the CRM.`,
   }
 }
 
@@ -141,7 +141,7 @@ export function ChatAssistant() {
               {m.actions && (
                 <div className={`space-y-2 ${m.text ? 'mt-2' : ''}`}>
                   {m.actions.map((action, ai) => {
-                    const { title, detail, warning } = describeAction(action)
+                    const { title, detail, note, blocked } = describeAction(action)
                     const outcome = m.outcomes?.[ai] ?? null
                     return (
                       <div key={ai} className="rounded-md border border-ink/10 bg-paper p-2 text-ink">
@@ -151,10 +151,12 @@ export function ChatAssistant() {
                           <p className="mt-1 text-xs text-ox">{outcome}</p>
                         ) : (
                           <>
-                            {warning && (action.type === 'create_candidate' || action.type === 'create_firm_contact') && (
+                            {note && <p className="mt-0.5 text-xs text-ink/40">{note}</p>}
+                            {blocked && <p className="mt-0.5 text-xs text-ox">{blocked}</p>}
+                            {(action.type === 'create_candidate' || action.type === 'create_firm_contact') && !action.email && (
                               <input
                                 type="email"
-                                placeholder="Add an email to enable Confirm…"
+                                placeholder="Email (optional)"
                                 value={emailOverrides[`${mi}-${ai}`] ?? ''}
                                 onChange={(e) =>
                                   setEmailOverrides((prev) => ({ ...prev, [`${mi}-${ai}`]: e.target.value }))
@@ -162,13 +164,10 @@ export function ChatAssistant() {
                                 className="mt-1.5 w-full rounded-md border border-ink/20 px-2 py-1 text-xs"
                               />
                             )}
-                            {warning && !(action.type === 'create_candidate' || action.type === 'create_firm_contact') && (
-                              <p className="mt-0.5 text-xs text-ox">{warning}</p>
-                            )}
                             <div className="mt-1.5 flex gap-2">
                               <button
                                 onClick={() => handleActionResolve(mi, ai, true)}
-                                disabled={!actionIsExecutable(action) && !emailOverrides[`${mi}-${ai}`]}
+                                disabled={!actionIsExecutable(action)}
                                 className="rounded-md border-2 border-ox bg-ox px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
                               >
                                 Confirm

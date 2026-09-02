@@ -1651,7 +1651,7 @@ export type Database = {
       create_candidate: {
         Args: {
           p_current_title?: string
-          p_email: string
+          p_email?: string
           p_first_name: string
           p_last_name: string
           p_location?: string
@@ -1663,7 +1663,7 @@ export type Database = {
       }
       create_firm_contact: {
         Args: {
-          p_email: string
+          p_email?: string
           p_firm_id: string
           p_first_name: string
           p_is_primary?: boolean

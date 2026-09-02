@@ -73,23 +73,20 @@ export async function sendChatMessage(transcript: ChatTurn[]): Promise<ChatRespo
   return responseBody
 }
 
-/** An action needs a piece of information the conversation didn't contain yet. */
+/** An action needs a piece of information the conversation didn't contain yet — only log_activity truly needs a match to proceed. */
 export function actionIsExecutable(action: QuickAddAction): boolean {
-  if (action.type === 'create_candidate') return !!action.email
-  if (action.type === 'create_firm_contact') return !!action.email
   if (action.type === 'log_activity') return !!action.targetMatch
-  return false
+  return true
 }
 
 /** A short plain-English record of the outcome, folded into the next turn so the assistant keeps context. */
 export async function runAction(action: QuickAddAction): Promise<string> {
   if (action.type === 'create_candidate') {
-    if (!action.email) return `Could not create ${action.firstName} ${action.lastName} — no email address.`
     const values: CandidateFormValues = {
       ...emptyCandidateForm,
       firstName: action.firstName,
       lastName: action.lastName,
-      email: action.email,
+      email: action.email ?? '',
       phone: action.phone ?? '',
       currentTitle: action.currentTitle ?? '',
       practiceAreas: (action.practiceAreas ?? []).join(', '),
@@ -104,7 +101,6 @@ export async function runAction(action: QuickAddAction): Promise<string> {
   }
 
   if (action.type === 'create_firm_contact') {
-    if (!action.email) return `Could not create contact ${action.firstName} ${action.lastName} — no email address.`
     let firmId = action.firmMatch?.id
     if (!firmId) {
       const { data, error } = await supabase.from('firms').insert({ name: action.firmQuery }).select('id').single()
@@ -114,7 +110,7 @@ export async function runAction(action: QuickAddAction): Promise<string> {
     const personId = await createFirmContact(firmId, {
       firstName: action.firstName,
       lastName: action.lastName,
-      email: action.email,
+      email: action.email ?? '',
       phone: action.phone ?? '',
       roleTitle: action.roleTitle ?? '',
       isPrimary: false,

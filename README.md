@@ -500,11 +500,21 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
+- **Email is optional on `create_candidate`/`create_firm_contact`**
+  (migration 27) - both required an email from the start, on the
+  assumption a recruiter always has it in hand. Direct feedback: a call
+  often produces a name before an email, and neither the assistant nor
+  the manual forms should force one to be invented or block adding the
+  person. Existing reuse-by-email/dedup behaviour is unchanged when an
+  email *is* given; this only makes the parameter optional, matching
+  `email_addresses.person_id` already being nullable by design
+  (migration 3) - a person can simply have zero email_addresses rows
+  until one is added later.
 - **Conversational assistant on the dashboard, backed by Claude**
   (admin/recruiter only) - superseded the original single-shot "Quick
   add" box per direct feedback ("more like a chat box... it asks more
   questions if it needs"). `netlify/functions/ai-chat.ts` gives Claude
-  (Haiku 4.5) two kinds of tools: read tools (search_candidates,
+  two kinds of tools: read tools (search_candidates,
   search_firms, get_attention_needed - wraps `insights_dashboard()`) it
   can call and loop on *within one request* to actually answer a
   question in prose, and write tools (create_candidate,
@@ -528,6 +538,17 @@ npm run validate     # typecheck + lint + test + build, in order
   scope: candidates, firm contacts and activity logs for writes - not
   job creation from text, since a job's required fields (PQE range,
   salary range) don't come through reliably in a spoken note.
+  **Switched from Haiku to Sonnet 5** after live feedback that Haiku was
+  missing details already present in the message and generally feeling
+  unreliable - a deliberate reliability-over-speed tradeoff, worth
+  revisiting if the extra latency turns out to matter more in practice
+  than the accuracy gain. System prompt now explicitly requires using
+  every field the message already gives rather than leaving it blank.
+  A stuck-card bug was also fixed here: a create action missing an email
+  used to just sit disabled with no way forward; combined with making
+  email fully optional on the underlying functions (above), a missing
+  email is no longer a blocker at all - an inline field lets one be
+  added on the spot if wanted, but Confirm no longer requires it.
 - **File storage on candidates, firms and jobs** (migration 26) - a
   private `attachments` Storage bucket plus a `file_attachments`
   metadata table (subject_type/subject_id polymorphic, matching the
