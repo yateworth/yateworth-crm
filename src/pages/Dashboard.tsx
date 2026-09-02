@@ -13,7 +13,7 @@ import {
 import { fetchMyDueTasks, setTaskStatus, type Task } from '@/lib/tasks'
 import { fetchSurveys, type SurveyListItem } from '@/lib/surveys'
 import { fetchInsightsDashboard, type InsightsDashboard } from '@/lib/insights'
-import { QuickAdd } from '@/components/QuickAdd'
+import { ChatAssistant } from '@/components/ChatAssistant'
 
 const SURVEY_SLUG = 'australian-legal-survey'
 
@@ -36,10 +36,6 @@ export function DashboardPage() {
 
   async function loadTasks() {
     setMyTasks(await fetchMyDueTasks())
-  }
-
-  async function refreshInsights() {
-    setInsights(await fetchInsightsDashboard().catch(() => null))
   }
 
   useEffect(() => {
@@ -94,7 +90,7 @@ export function DashboardPage() {
           </div>
         )}
 
-        {canManage && <QuickAdd onDone={refreshInsights} />}
+        {canManage && <ChatAssistant />}
 
         {!loading && (
           <section>

@@ -44,26 +44,36 @@ export interface LogActivityAction {
 
 export type QuickAddAction = CreateCandidateAction | CreateFirmContactAction | LogActivityAction
 
-export async function parseNote(text: string): Promise<{ actions: QuickAddAction[]; unresolved?: boolean }> {
+export interface ChatTurn {
+  role: 'user' | 'assistant'
+  text: string
+}
+
+export interface ChatResponse {
+  text: string | null
+  actions: QuickAddAction[]
+}
+
+export async function sendChatMessage(transcript: ChatTurn[]): Promise<ChatResponse> {
   const {
     data: { session },
   } = await supabase.auth.getSession()
   if (!session) throw new Error('Not signed in')
 
-  const response = await fetch('/api/ai-parse-note', {
+  const response = await fetch('/api/ai-chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${session.access_token}`,
     },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ transcript }),
   })
-  const body = (await response.json()) as { actions: QuickAddAction[]; unresolved?: boolean; error?: string }
-  if (!response.ok) throw new Error(body.error ?? 'Could not parse this note')
-  return body
+  const responseBody = (await response.json()) as ChatResponse & { error?: string }
+  if (!response.ok) throw new Error(responseBody.error ?? 'Could not reach the assistant')
+  return responseBody
 }
 
-/** An action needs a piece of information the note didn't contain — the preview should let it be confirmed but skip it. */
+/** An action needs a piece of information the conversation didn't contain yet. */
 export function actionIsExecutable(action: QuickAddAction): boolean {
   if (action.type === 'create_candidate') return !!action.email
   if (action.type === 'create_firm_contact') return !!action.email
@@ -71,9 +81,10 @@ export function actionIsExecutable(action: QuickAddAction): boolean {
   return false
 }
 
-async function runAction(action: QuickAddAction): Promise<void> {
+/** A short plain-English record of the outcome, folded into the next turn so the assistant keeps context. */
+export async function runAction(action: QuickAddAction): Promise<string> {
   if (action.type === 'create_candidate') {
-    if (!action.email) return
+    if (!action.email) return `Could not create ${action.firstName} ${action.lastName} — no email address.`
     const values: CandidateFormValues = {
       ...emptyCandidateForm,
       firstName: action.firstName,
@@ -89,11 +100,11 @@ async function runAction(action: QuickAddAction): Promise<void> {
     if (action.activityNote) {
       await logActivity('people', personId, action.activityNote, 'note')
     }
-    return
+    return `Created candidate ${action.firstName} ${action.lastName}.`
   }
 
   if (action.type === 'create_firm_contact') {
-    if (!action.email) return
+    if (!action.email) return `Could not create contact ${action.firstName} ${action.lastName} — no email address.`
     let firmId = action.firmMatch?.id
     if (!firmId) {
       const { data, error } = await supabase.from('firms').insert({ name: action.firmQuery }).select('id').single()
@@ -111,17 +122,10 @@ async function runAction(action: QuickAddAction): Promise<void> {
     if (action.activityNote) {
       await logActivity('people', personId, action.activityNote, 'note')
     }
-    return
+    return `Created firm contact ${action.firstName} ${action.lastName} at ${action.firmMatch?.name ?? action.firmQuery}.`
   }
 
-  if (action.type === 'log_activity') {
-    if (!action.targetMatch) return
-    await logActivity('people', action.targetMatch.id, action.body, action.activityType || 'note')
-  }
-}
-
-export async function executeActions(actions: QuickAddAction[]): Promise<void> {
-  for (const action of actions) {
-    await runAction(action)
-  }
+  if (!action.targetMatch) return `Could not log this — no matching record found for "${action.targetQuery}".`
+  await logActivity('people', action.targetMatch.id, action.body, action.activityType || 'note')
+  return `Logged an activity against ${action.targetMatch.name}.`
 }

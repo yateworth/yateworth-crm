@@ -500,24 +500,33 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
-- **Quick add: natural-language data entry, backed by Claude** - a
-  "Quick add" box on the dashboard (admin/recruiter only). Type something
-  like "Had a call with Jane Doe at Smith & Co, 5 PQE corporate lawyer,
-  jane@example.com" and `netlify/functions/ai-parse-note.ts` sends it to
-  Claude (Haiku 4.5 - fast/cheap, plenty for structured extraction) with
-  create_candidate/create_firm_contact/log_activity available as tools;
-  firm and person names it mentions are resolved against existing
-  records server-side (not guessed by the model) before anything is
-  shown. The result is a preview card, never an immediate write - you
-  confirm before anything saves, per your explicit answer on that. On
-  confirm, the client executes through the exact same
-  createCandidate/createFirmContact/logActivity paths the manual forms
-  already use - parsing free text is the only new part; writing isn't.
-  **Needs `ANTHROPIC_API_KEY` set as a Netlify environment variable
-  before it will do anything** - same "only you can create this" step as
-  the Google Cloud key Gmail sync needs, at console.anthropic.com.
-  Disclosed scope: candidates, firm contacts and activity logs only -
-  not job creation from text, since a job's required fields (PQE range,
+- **Conversational assistant on the dashboard, backed by Claude**
+  (admin/recruiter only) - superseded the original single-shot "Quick
+  add" box per direct feedback ("more like a chat box... it asks more
+  questions if it needs"). `netlify/functions/ai-chat.ts` gives Claude
+  (Haiku 4.5) two kinds of tools: read tools (search_candidates,
+  search_firms, get_attention_needed - wraps `insights_dashboard()`) it
+  can call and loop on *within one request* to actually answer a
+  question in prose, and write tools (create_candidate,
+  create_firm_contact, log_activity) that only ever produce a proposal -
+  never executed server-side. The client is deliberately stateless
+  between turns: rather than round-tripping raw Anthropic
+  tool_use/tool_result message objects (the technically "proper" way to
+  do multi-turn tool use, but brittle across separate HTTP requests),
+  each turn resends the whole conversation as plain text, with any prior
+  proposal's confirm/skip outcome folded back in as a line of context.
+  Simpler and more robust than the strict protocol, at the cost of not
+  being quite how Claude's own multi-turn tool use is normally wired -
+  worth knowing if this gets extended later. Firm/person names in a
+  proposal are resolved against real records server-side, never guessed
+  by the model. Every write is a card with Confirm/Skip in the
+  conversation, never an immediate save; confirming executes through the
+  exact same createCandidate/createFirmContact/logActivity paths the
+  manual forms use. **Needs `ANTHROPIC_API_KEY` set as a Netlify
+  environment variable** - same "only you can create this" step as the
+  Google Cloud key Gmail sync needs, at console.anthropic.com. Disclosed
+  scope: candidates, firm contacts and activity logs for writes - not
+  job creation from text, since a job's required fields (PQE range,
   salary range) don't come through reliably in a spoken note.
 - **File storage on candidates, firms and jobs** (migration 26) - a
   private `attachments` Storage bucket plus a `file_attachments`
