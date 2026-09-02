@@ -1642,6 +1642,14 @@ export type Database = {
         }[]
       }
       get_active_survey: { Args: { p_slug: string }; Returns: Json }
+      insights_dashboard: {
+        Args: {
+          p_dormant_firm_days?: number
+          p_stale_contact_days?: number
+          p_stale_job_days?: number
+        }
+        Returns: Json
+      }
       list_surveys: {
         Args: never
         Returns: {

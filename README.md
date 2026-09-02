@@ -500,6 +500,16 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
+- **Rules-based insights on the dashboard** (migration 25) - chosen over
+  an LLM-powered version specifically to keep candidate/firm data inside
+  this database rather than sending it to an external API on every
+  dashboard load, with no ongoing API cost either. `insights_dashboard()`
+  (admin/recruiter only) surfaces three plain-SQL signals: candidates not
+  contacted in 30+ days, jobs open 45+ days with zero submissions, and
+  firm relationships (contacted/terms sent/terms signed - not already
+  marked dormant) with no logged activity in 60+ days. Each item links
+  straight to the record. An LLM-powered version remains a possible
+  later layer on top of this, not a replacement for it.
 - **Placement and fee tracking** (migration 24). `placements` from the
   original spec's Phase 3 schema, minus `offer_id` (no `offers` table
   exists yet - not asked for here, small addition later if it's built).
