@@ -1179,6 +1179,19 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      create_candidate: {
+        Args: {
+          p_current_title?: string
+          p_email: string
+          p_first_name: string
+          p_last_name: string
+          p_location?: string
+          p_phone?: string
+          p_practice_areas?: string[]
+          p_years_pqe?: number
+        }
+        Returns: string
+      }
       current_app_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]

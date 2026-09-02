@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
+import { Layout } from '@/components/Layout'
 import { CountCard } from '@/components/CountCard'
 import {
   fetchDashboardSummary,
@@ -13,7 +12,6 @@ import {
 const SURVEY_SLUG = 'australian-legal-survey'
 
 export function DashboardPage() {
-  const { profile } = useAuth()
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [survey, setSurvey] = useState<SurveyAggregateReport | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -50,23 +48,8 @@ export function DashboardPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-neutral-50 p-8">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-neutral-900">Yateworth CRM</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-neutral-600">
-              {profile?.fullName} ({profile?.role})
-            </span>
-            <button
-              onClick={() => supabase.auth.signOut()}
-              className="text-sm text-neutral-500 hover:text-neutral-900"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-
+    <Layout>
+      <div className="space-y-6">
         {loading && <p className="text-sm text-neutral-500">Loading…</p>}
 
         {error && (
@@ -131,6 +114,6 @@ export function DashboardPage() {
           </section>
         )}
       </div>
-    </div>
+    </Layout>
   )
 }

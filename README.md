@@ -341,8 +341,17 @@ npm run validate     # typecheck + lint + test + build, in order
   suppression, triggering `send-campaign-batch`) — the dashboard is
   read-only so far. Those functions all exist and are tested, just not
   wired to a screen yet.
-- **Phase 2**: full candidate/firm/job CRM, matching, Apollo promotion,
-  duplicate detection.
+- **Candidates and Firms screens exist now** — the first actual
+  day-to-day CRM screens, not just compliance/reporting infrastructure.
+  List + add for both. `create_candidate()` is atomic across
+  `people`/`email_addresses`/`candidate_profiles`, and correctly reuses
+  an email the marketing site already captured (survey/report requests)
+  rather than erroring or creating a duplicate person — see the comment
+  in migration 16 for what's deliberately still out of scope (real
+  duplicate/near-match detection is an explicit Phase 2 deliverable).
+- **Phase 2 remaining**: jobs, submissions, matching, Apollo promotion,
+  duplicate/near-match detection, editing/archiving existing
+  candidates/firms (currently add-and-view only).
 - **Phase 3**: submissions, interviews, offers, placements, fee tracking.
 - **Not in the spec at all yet**: a backend for `knowyourworth.html` (see
   "Wiring up the live site" above).
