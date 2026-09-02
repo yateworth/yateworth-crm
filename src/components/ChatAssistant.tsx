@@ -59,6 +59,7 @@ export function ChatAssistant() {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [emailOverrides, setEmailOverrides] = useState<Record<string, string>>({})
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -96,7 +97,15 @@ export function ChatAssistant() {
     const action = message.actions?.[actionIndex]
     if (!action) return
 
-    const outcome = confirmed ? await runAction(action).catch((err) => `Failed: ${err.message}`) : 'Skipped.'
+    const overrideEmail = emailOverrides[`${messageIndex}-${actionIndex}`]
+    const resolvedAction =
+      overrideEmail && (action.type === 'create_candidate' || action.type === 'create_firm_contact')
+        ? { ...action, email: overrideEmail }
+        : action
+
+    const outcome = confirmed
+      ? await runAction(resolvedAction).catch((err) => `Failed: ${err.message}`)
+      : 'Skipped.'
 
     setMessages((prev) =>
       prev.map((m, i) => {
@@ -138,25 +147,40 @@ export function ChatAssistant() {
                       <div key={ai} className="rounded-md border border-ink/10 bg-paper p-2 text-ink">
                         <p className="font-medium">{title}</p>
                         {detail && <p className="mt-0.5 text-xs text-sec">{detail}</p>}
-                        {warning && <p className="mt-0.5 text-xs text-ox">{warning}</p>}
                         {outcome ? (
                           <p className="mt-1 text-xs text-ox">{outcome}</p>
                         ) : (
-                          <div className="mt-1.5 flex gap-2">
-                            <button
-                              onClick={() => handleActionResolve(mi, ai, true)}
-                              disabled={!actionIsExecutable(action)}
-                              className="rounded-md border-2 border-ox bg-ox px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => handleActionResolve(mi, ai, false)}
-                              className="rounded-md border border-ink/20 px-2 py-1 text-xs text-sec"
-                            >
-                              Skip
-                            </button>
-                          </div>
+                          <>
+                            {warning && (action.type === 'create_candidate' || action.type === 'create_firm_contact') && (
+                              <input
+                                type="email"
+                                placeholder="Add an email to enable Confirm…"
+                                value={emailOverrides[`${mi}-${ai}`] ?? ''}
+                                onChange={(e) =>
+                                  setEmailOverrides((prev) => ({ ...prev, [`${mi}-${ai}`]: e.target.value }))
+                                }
+                                className="mt-1.5 w-full rounded-md border border-ink/20 px-2 py-1 text-xs"
+                              />
+                            )}
+                            {warning && !(action.type === 'create_candidate' || action.type === 'create_firm_contact') && (
+                              <p className="mt-0.5 text-xs text-ox">{warning}</p>
+                            )}
+                            <div className="mt-1.5 flex gap-2">
+                              <button
+                                onClick={() => handleActionResolve(mi, ai, true)}
+                                disabled={!actionIsExecutable(action) && !emailOverrides[`${mi}-${ai}`]}
+                                className="rounded-md border-2 border-ox bg-ox px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => handleActionResolve(mi, ai, false)}
+                                className="rounded-md border border-ink/20 px-2 py-1 text-xs text-sec"
+                              >
+                                Skip
+                              </button>
+                            </div>
+                          </>
                         )}
                       </div>
                     )

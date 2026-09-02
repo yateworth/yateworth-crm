@@ -152,8 +152,10 @@ const READ_TOOL_NAMES = new Set(READ_TOOLS.map((t) => t.name))
 const SYSTEM_PROMPT = `You are the assistant inside a legal recruitment CRM, talking with a recruiter or admin. You can:
 - Answer questions about candidates, firms, and what needs follow-up, using the search/get tools.
 - Propose adding a new candidate, a new firm contact, or logging an activity against an existing person, using the create_candidate/create_firm_contact/log_activity tools. These only propose — the recruiter confirms in the UI before anything saves.
-- Ask a clarifying question in plain text if you need more information before proposing an action (e.g. a missing email) — don't guess or invent details.
-Keep replies short and conversational. Never invent a fact (an email, a PQE number, a practice area) that wasn't given to you.`
+
+Critical: when the user's message contains a detail that maps to a tool field — an email address, a phone number, years of PQE, a practice area, a job title — you MUST put it in that field on the tool call. Never leave a field empty when the information is right there in the message; that is the single most common mistake to avoid. Only ask a clarifying question for information that is genuinely missing and needed (most often: an email address for a new candidate or contact). Never invent a fact that wasn't given to you.
+
+Keep replies to 1-2 short sentences — this is a compact chat panel, not an essay.`
 
 async function executeReadTool(
   admin: ReturnType<typeof getSupabaseAdmin>,
@@ -246,8 +248,8 @@ export default async (req: Request, _context: Context) => {
     let response: Anthropic.Message
     try {
       response = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
+        model: 'claude-sonnet-5',
+        max_tokens: 512,
         system: SYSTEM_PROMPT,
         tools: [...WRITE_TOOLS, ...READ_TOOLS],
         messages,
