@@ -1027,6 +1027,60 @@ export type Database = {
           },
         ]
       }
+      placements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fee_amount: number | null
+          guarantee_end_date: string | null
+          id: string
+          invoice_status: Database["public"]["Enums"]["invoice_status"]
+          salary: number | null
+          start_date: string | null
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fee_amount?: number | null
+          guarantee_end_date?: string | null
+          id?: string
+          invoice_status?: Database["public"]["Enums"]["invoice_status"]
+          salary?: number | null
+          start_date?: string | null
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fee_amount?: number | null
+          guarantee_end_date?: string | null
+          id?: string
+          invoice_status?: Database["public"]["Enums"]["invoice_status"]
+          salary?: number | null
+          start_date?: string | null
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "placements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "placements_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           active: boolean
@@ -1680,6 +1734,7 @@ export type Database = {
         | "terms_sent"
         | "terms_signed"
         | "dormant"
+      invoice_status: "not_invoiced" | "invoiced" | "paid" | "written_off"
       job_status:
         | "draft"
         | "open"
@@ -1871,6 +1926,7 @@ export const Constants = {
         "terms_signed",
         "dormant",
       ],
+      invoice_status: ["not_invoiced", "invoiced", "paid", "written_off"],
       job_status: ["draft", "open", "on_hold", "filled", "closed", "cancelled"],
       permission_kind: ["single_use", "ongoing"],
       permission_purpose: ["report", "blog", "recruitment"],

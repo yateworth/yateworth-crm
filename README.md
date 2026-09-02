@@ -500,6 +500,31 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
+- **Placement and fee tracking** (migration 24). `placements` from the
+  original spec's Phase 3 schema, minus `offer_id` (no `offers` table
+  exists yet - not asked for here, small addition later if it's built).
+  One placement per submission, RLS matches submissions exactly
+  (recruiter/admin only, no viewer - fee amounts are as sensitive as
+  anything else in the pipeline). New `/placements` page: total
+  placements/total fees/outstanding fees at a glance, a form to record a
+  placement against any submission at the 'placed' stage that doesn't
+  have one yet, and an inline invoice-status control
+  (not_invoiced/invoiced/paid/written_off) per row. `JobDetail`'s
+  pipeline board links a placed card straight to it.
+- **Direct one-off email from a candidate's page**, distinct from a
+  campaign send on purpose: `can_send_email()`'s opt-in ledger exists for
+  marketing/bulk sends where consent tracking is the point, but ordinary
+  1:1 correspondence with your own candidate was never gated behind an
+  opt-in checkbox and rehoming it there would have blocked email to
+  most candidates (added directly by a recruiter, not through the
+  marketing site, so most never get a `communication_preferences` row at
+  all). New `netlify/functions/send-direct-email.ts` checks only the one
+  suppression that always matters regardless of purpose - `all_email`
+  (hard bounce/complaint/legal request) - sends through the same
+  provider abstraction as campaigns, and logs the message to both
+  `email_messages` (audit trail) and the candidate's own activity feed.
+  No unsubscribe footer, for the same reason a personal email from a
+  colleague doesn't carry one.
 - **Candidates got a kanban board** alongside the existing list view (a
   List/Board toggle on `/candidates`) - columns per `candidate_status`
   (prospective/active/submitted/placed/inactive), a stage-change select

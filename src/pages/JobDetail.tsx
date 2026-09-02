@@ -178,6 +178,11 @@ export function JobDetailPage() {
                       {s.candidate_profiles?.current_title && (
                         <p className="text-xs text-sec">{s.candidate_profiles.current_title}</p>
                       )}
+                      {s.stage === 'placed' && (
+                        <Link to="/placements" className="mt-1 block text-xs text-ox hover:underline">
+                          Record fee →
+                        </Link>
+                      )}
                       {canManage && (
                         <select
                           value={s.stage}

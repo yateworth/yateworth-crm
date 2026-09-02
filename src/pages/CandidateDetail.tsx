@@ -4,6 +4,7 @@ import { Layout } from '@/components/Layout'
 import { CandidateForm } from '@/components/CandidateForm'
 import { ActivityFeed } from '@/components/ActivityFeed'
 import { TaskList } from '@/components/TaskList'
+import { SendEmailForm } from '@/components/SendEmailForm'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchSubmissionsForCandidate, type SubmissionWithJob } from '@/lib/submissions'
 import {
@@ -31,6 +32,7 @@ export function CandidateDetailPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0)
 
   async function load() {
     if (!id) return
@@ -290,12 +292,18 @@ export function CandidateDetailPage() {
         )}
       </div>
 
+      {canManage && (
+        <div className="mt-6">
+          <SendEmailForm personId={candidate.id} onSent={() => setActivityRefreshKey((k) => k + 1)} />
+        </div>
+      )}
+
       <div className="mt-6 grid grid-cols-2 gap-6">
         <div className="rounded-lg border border-ink/10 bg-paper p-5">
           <TaskList subjectType="people" subjectId={candidate.id} />
         </div>
         <div className="rounded-lg border border-ink/10 bg-paper p-5">
-          <ActivityFeed subjectType="people" subjectId={candidate.id} />
+          <ActivityFeed key={activityRefreshKey} subjectType="people" subjectId={candidate.id} />
         </div>
       </div>
     </Layout>
