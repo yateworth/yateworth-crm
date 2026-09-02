@@ -500,6 +500,16 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
+- **Jobs pipeline "won" fixed to read from status, not a separate
+  placement record** (migration 30) - direct bug report: marking a job
+  'filled' didn't show it as won on the dashboard until a placement was
+  *also* recorded separately, which read as broken rather than as the
+  deliberate two-signal design it was. Won is now simply `status =
+  'filled'`, matching the meaning 'filled' already has everywhere else
+  (StatusBadge's tone map already treated it as success). The fee amount
+  still comes from a placement when one is recorded; a won job with none
+  yet shows "Won · record fee →" linking straight to Placements instead
+  of silently showing as not won.
 - **Jobs can be edited after creation** - a real gap: Candidates and
   Firms both had full edit forms from Stage 1, but `JobDetail` only ever
   let you change status. New `updateJob()`/`jobToFormValues()`, and the

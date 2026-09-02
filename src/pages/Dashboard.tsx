@@ -207,7 +207,13 @@ export function DashboardPage() {
                             {j.closed_at ? new Date(j.closed_at).toLocaleDateString() : '—'}
                           </span>
                           {j.won ? (
-                            <StatusBadge label={`Won · ${money(j.fee_amount)}`} tone="success" />
+                            j.fee_amount != null ? (
+                              <StatusBadge label={`Won · ${money(j.fee_amount)}`} tone="success" />
+                            ) : (
+                              <Link to="/placements" className="hover:underline">
+                                <StatusBadge label="Won · record fee →" tone="success" />
+                              </Link>
+                            )
                           ) : (
                             <StatusBadge label="Not won" tone="neutral" />
                           )}

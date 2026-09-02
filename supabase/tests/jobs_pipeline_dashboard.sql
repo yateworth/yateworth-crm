@@ -1,4 +1,4 @@
--- Jobs pipeline dashboard assertions (migration 28).
+-- Jobs pipeline dashboard assertions (migrations 28 and 30).
 -- Run with: node scripts/run-remote-sql.cjs supabase/tests/jobs_pipeline_dashboard.sql
 
 begin;
@@ -34,6 +34,10 @@ begin
   -- a closed job that was NOT won (no placement)
   insert into jobs (firm_id, title, status, closed_at) values (v_firm_id, 'Lost Job', 'cancelled', now())
   returning id into v_lost_job_id;
+
+  -- a job marked filled but with no placement recorded yet — the exact bug this migration fixes:
+  -- "won" must come from status alone, not require a placement to already exist
+  insert into jobs (firm_id, title, status, closed_at) values (v_firm_id, 'Filled No Placement Job', 'filled', now());
 end $$;
 
 set local role authenticated;
@@ -76,20 +80,31 @@ begin
   -- 4. totals reflect at least the seeded jobs (>= since other tests may have left data)
   v_seq := v_seq + 1;
   insert into test_results values (v_seq,
-    case when (v_result -> 'totals' ->> 'won_count')::int >= 1
+    case when (v_result -> 'totals' ->> 'won_count')::int >= 2
       and (v_result -> 'totals' ->> 'won_fee_total')::numeric >= 42000
-    then 'PASS 4: totals include the won job'
+    then 'PASS 4: totals include both won jobs'
     else format('FAIL 4: totals=%s', v_result -> 'totals') end);
+
+  -- 5. a job marked 'filled' with no placement recorded still shows won=true, with no fee
+  v_seq := v_seq + 1;
+  insert into test_results values (v_seq,
+    case when exists (
+      select 1 from jsonb_array_elements(v_result -> 'closed_jobs') j
+      where j ->> 'title' = 'Filled No Placement Job'
+        and (j ->> 'won')::boolean = true
+        and j -> 'fee_amount' = 'null'::jsonb
+    ) then 'PASS 5: a filled job with no placement still shows won=true'
+    else 'FAIL 5: won did not follow status alone' end);
 end $$;
 
--- 5. an unauthorised caller is rejected
+-- 6. an unauthorised caller is rejected
 select set_config('request.jwt.claim.sub', '99999999-9999-9999-9999-999999999999', true);
 do $$
 begin
   perform jobs_pipeline_dashboard();
-  insert into test_results values (5, 'FAIL 5: an unauthorised caller received the jobs pipeline');
+  insert into test_results values (6, 'FAIL 6: an unauthorised caller received the jobs pipeline');
 exception when others then
-  insert into test_results values (5, 'PASS 5: jobs_pipeline_dashboard rejects an unauthorised caller');
+  insert into test_results values (6, 'PASS 6: jobs_pipeline_dashboard rejects an unauthorised caller');
 end $$;
 
 select * from test_results order by seq;
