@@ -62,6 +62,26 @@ export async function fetchPlaceableSubmissions(): Promise<PlaceableSubmission[]
     })
 }
 
+export interface JobPlacement {
+  id: string
+  submission_id: string
+  start_date: string | null
+  salary: number | null
+  fee_amount: number | null
+  invoice_status: InvoiceStatus
+  guarantee_end_date: string | null
+}
+
+/** All placements for a job's submissions — lets JobDetail show/record fees right on the job. */
+export async function fetchPlacementsForJob(jobId: string): Promise<JobPlacement[]> {
+  const { data, error } = await supabase
+    .from('placements')
+    .select('id, submission_id, start_date, salary, fee_amount, invoice_status, guarantee_end_date, submissions!inner(job_id)')
+    .eq('submissions.job_id', jobId)
+  if (error) throw error
+  return (data ?? []) as unknown as JobPlacement[]
+}
+
 export interface CreatePlacementInput {
   submissionId: string
   startDate: string

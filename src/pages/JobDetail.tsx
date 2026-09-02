@@ -24,8 +24,27 @@ import {
   type SubmissionStage,
 } from '@/lib/submissions'
 import { fetchCandidates, type Candidate } from '@/lib/candidates'
+import {
+  fetchPlacementsForJob,
+  createPlacement,
+  setInvoiceStatus,
+  INVOICE_STATUSES,
+  type JobPlacement,
+} from '@/lib/placements'
+import { TONE_CLASSES, invoiceStatusTone } from '@/components/StatusBadge'
 
 const JOB_STATUSES: JobStatus[] = ['draft', 'open', 'on_hold', 'filled', 'closed', 'cancelled']
+
+const invoiceStatusLabels: Record<string, string> = {
+  not_invoiced: 'Not invoiced',
+  invoiced: 'Invoiced',
+  paid: 'Paid',
+  written_off: 'Written off',
+}
+
+function money(value: number | null): string {
+  return value != null ? `$${value.toLocaleString()}` : '—'
+}
 
 function candidateName(s: SubmissionWithCandidate): string {
   const person = s.candidate_profiles?.people
@@ -40,26 +59,32 @@ export function JobDetailPage() {
   const [job, setJob] = useState<JobWithFirm | null>(null)
   const [submissions, setSubmissions] = useState<SubmissionWithCandidate[]>([])
   const [candidates, setCandidates] = useState<Candidate[]>([])
+  const [placements, setPlacements] = useState<JobPlacement[]>([])
   const [selectedCandidateId, setSelectedCandidateId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [values, setValues] = useState<JobFormValues>(emptyJobForm)
+  const [recordingFeeFor, setRecordingFeeFor] = useState<string | null>(null)
+  const [feeForm, setFeeForm] = useState({ startDate: '', salary: '', feeAmount: '', guaranteeEndDate: '' })
+  const [savingFee, setSavingFee] = useState(false)
 
   async function load() {
     if (!id) return
     setLoading(true)
     try {
-      const [jobResult, submissionsResult, candidatesResult] = await Promise.all([
+      const [jobResult, submissionsResult, candidatesResult, placementsResult] = await Promise.all([
         fetchJob(id),
         fetchSubmissionsForJob(id),
         fetchCandidates('active'),
+        fetchPlacementsForJob(id),
       ])
       setJob(jobResult)
       setValues(jobToFormValues(jobResult))
       setSubmissions(submissionsResult)
       setCandidates(candidatesResult)
+      setPlacements(placementsResult)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load this job.')
@@ -84,6 +109,30 @@ export function JobDetailPage() {
       setError(err instanceof Error ? err.message : 'Could not save changes.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleRecordFee(submissionId: string) {
+    setSavingFee(true)
+    setError(null)
+    try {
+      await createPlacement({ submissionId, ...feeForm })
+      setRecordingFeeFor(null)
+      setFeeForm({ startDate: '', salary: '', feeAmount: '', guaranteeEndDate: '' })
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not record this fee.')
+    } finally {
+      setSavingFee(false)
+    }
+  }
+
+  async function handleInvoiceStatusChange(placementId: string, status: (typeof INVOICE_STATUSES)[number]) {
+    try {
+      await setInvoiceStatus(placementId, status)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update invoice status.')
     }
   }
 
@@ -283,9 +332,96 @@ export function JobDetailPage() {
                         <p className="text-xs text-sec">{s.candidate_profiles.current_title}</p>
                       )}
                       {s.stage === 'placed' && (
-                        <Link to="/placements" className="mt-1 block text-xs text-ox hover:underline">
-                          Record fee →
-                        </Link>
+                        <div className="mt-1.5">
+                          {(() => {
+                            const placement = placements.find((p) => p.submission_id === s.id)
+                            if (placement) {
+                              return (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-semibold text-success">
+                                    Fee: {money(placement.fee_amount)}
+                                  </p>
+                                  {canManage && (
+                                    <select
+                                      value={placement.invoice_status}
+                                      onChange={(e) =>
+                                        handleInvoiceStatusChange(
+                                          placement.id,
+                                          e.target.value as (typeof INVOICE_STATUSES)[number],
+                                        )
+                                      }
+                                      className={`w-full rounded-full border-0 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${TONE_CLASSES[invoiceStatusTone[placement.invoice_status] ?? 'neutral']}`}
+                                    >
+                                      {INVOICE_STATUSES.map((st) => (
+                                        <option key={st} value={st}>
+                                          {invoiceStatusLabels[st]}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  )}
+                                </div>
+                              )
+                            }
+                            if (!canManage) return null
+                            if (recordingFeeFor === s.id) {
+                              return (
+                                <div className="space-y-1 rounded border border-ink/10 p-2">
+                                  <input
+                                    type="date"
+                                    placeholder="Start date"
+                                    value={feeForm.startDate}
+                                    onChange={(e) => setFeeForm((f) => ({ ...f, startDate: e.target.value }))}
+                                    className="w-full rounded border border-ink/20 px-1.5 py-1 text-xs"
+                                  />
+                                  <input
+                                    type="number"
+                                    placeholder="Salary"
+                                    value={feeForm.salary}
+                                    onChange={(e) => setFeeForm((f) => ({ ...f, salary: e.target.value }))}
+                                    className="w-full rounded border border-ink/20 px-1.5 py-1 text-xs"
+                                  />
+                                  <input
+                                    type="number"
+                                    placeholder="Fee amount"
+                                    value={feeForm.feeAmount}
+                                    onChange={(e) => setFeeForm((f) => ({ ...f, feeAmount: e.target.value }))}
+                                    className="w-full rounded border border-ink/20 px-1.5 py-1 text-xs"
+                                  />
+                                  <input
+                                    type="date"
+                                    placeholder="Guarantee ends"
+                                    value={feeForm.guaranteeEndDate}
+                                    onChange={(e) => setFeeForm((f) => ({ ...f, guaranteeEndDate: e.target.value }))}
+                                    className="w-full rounded border border-ink/20 px-1.5 py-1 text-xs"
+                                  />
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={() => setRecordingFeeFor(null)}
+                                      className="flex-1 rounded border border-ink/20 px-1.5 py-1 text-xs text-sec"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={() => handleRecordFee(s.id)}
+                                      disabled={savingFee}
+                                      className="flex-1 rounded border-2 border-ox bg-ox px-1.5 py-1 text-xs font-semibold text-white hover:bg-ox-lift disabled:opacity-50"
+                                    >
+                                      {savingFee ? 'Saving…' : 'Save'}
+                                    </button>
+                                  </div>
+                                </div>
+                              )
+                            }
+                            return (
+                              <button
+                                onClick={() => setRecordingFeeFor(s.id)}
+                                className="text-xs text-ox hover:underline"
+                              >
+                                Record fee →
+                              </button>
+                            )
+                          })()}
+                        </div>
                       )}
                       {canManage && (
                         <select

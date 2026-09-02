@@ -500,6 +500,16 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
+- **Recording a placement's fee moved onto the job itself** - direct
+  feedback ("it should be on the job") after the "Record fee →" link
+  sent you off to the separate Placements page. New
+  `fetchPlacementsForJob()` and `JobDetail`'s pipeline board now shows,
+  inline on each placed candidate's card: the recorded fee and an
+  invoice-status pill if a placement exists, or a small inline form
+  (start date, salary, fee, guarantee end) to record one right there if
+  it doesn't - no navigation away from the job. The Placements page
+  itself is unchanged and still useful as the cross-job fee ledger; this
+  just adds the per-job path alongside it.
 - **Jobs pipeline "won" fixed to read from status, not a separate
   placement record** (migration 30) - direct bug report: marking a job
   'filled' didn't show it as won on the dashboard until a placement was
