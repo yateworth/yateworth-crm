@@ -1,9 +1,5 @@
 # Make the CRM actually functional (candidates, firms, surveys, activity)
 
-**Status**: Stage 1 (detail pages/edit/archive) — done. Stage 2
-(activities/tasks) — done. Stage 3 (jobs/pipeline) — done. Stage 4
-(clickable survey page) — not started.
-
 ## Context
 
 Milestones 1-6 built the compliance/marketing-ops backend (permissions, anonymous survey, campaigns, unsubscribe, reporting) plus two thin CRM screens (Candidates, Firms) added as a fast follow when it became clear the dashboard alone didn't feel like a CRM.
@@ -63,3 +59,51 @@ Fixes "surveys aren't clickable."
 ## Sizing expectation
 
 Stage 1 is the most direct fix for what you flagged today and the best place to start. Stages 2-4 are each a comparable amount of work to a single milestone from Phase 1 (a migration + RLS + a test file + one or two screens) — sizeable individually, so I'd plan to stop and show you Stage 1 before continuing, the same way each earlier milestone got checked before the next one started.
+
+---
+
+# Gmail sync (separate initiative, started after Stage 3)
+
+## Context
+
+You asked, mid-Stage-3, for a way to link your actual Gmail account to the CRM. Decided: full email sync (not just a "BCC to log" pattern), and full email bodies stored and shown in the activity feed, not just subject/snippet — the HubSpot-like experience of reading a whole thread inside the CRM.
+
+This is a real, separate feature from the four CRM stages above — it needs a Google Cloud project, an OAuth flow, token storage, and an ongoing sync job, none of which the CRM has any of yet. It also means email content (candidate and firm correspondence) will live in this project's Supabase database long-term, which is worth being deliberate about.
+
+## What only you can do first
+
+Same category as creating the Supabase/Netlify/GitHub accounts earlier in this project — I can't create a Google Cloud project or click through Google's consent screens on your behalf.
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com), create a project (or use an existing one).
+2. **APIs & Services → Library** → enable the **Gmail API**.
+3. **APIs & Services → OAuth consent screen**:
+   - User type: **External** (unless your Gmail is on a Google Workspace domain, in which case **Internal** is available and simpler)
+   - Add scope `https://www.googleapis.com/auth/gmail.readonly`
+   - Under **Test users**, add your own Gmail address
+   - Leave publishing status as **Testing** for now — see the caveat below
+4. **APIs & Services → Credentials** → Create Credentials → **OAuth client ID** → Application type **Web application** → Authorized redirect URI: `https://yateworth-crm.netlify.app/api/gmail-oauth-callback`
+5. Copy the **Client ID** and **Client Secret** and paste them here (same handling as every other secret this session — used only to configure Netlify env vars, never saved to a file or committed) once you're ready for me to wire it up.
+
+**Real caveat to accept up front**: while the app is in Google's "Testing" publishing status (the only option that skips Google's manual verification review, which needs a live privacy policy page and can take weeks), Gmail refresh tokens expire after **7 days** — you'll need to click "Connect Gmail" again about once a week. Moving to "In production" removes this but requires that verification review. Starting in Testing mode and revisiting this if the weekly reconnect becomes annoying is the pragmatic choice here.
+
+## Design
+
+- **`gmail_connections` table** (new migration): one row per connected profile — `profile_id`, `google_email`, `access_token`, `refresh_token`, `token_expires_at`, `last_synced_at`, `last_history_id`. No SELECT/INSERT/UPDATE policy for any client role at all — this is more sensitive than anything else in the database so far (it's the key to someone's actual inbox). Only Netlify functions (service role) ever touch it, following the same pattern as `record_unsubscribe`/`process_email_event` in migration 12.
+- **`netlify/functions/gmail-oauth-start.ts`**: redirects the browser to Google's OAuth consent URL with the right scope and a `state` parameter tied to the signed-in user (verified via the same bearer-token pattern `send-campaign-batch.ts` already uses).
+- **`netlify/functions/gmail-oauth-callback.ts`**: exchanges the returned code for tokens via Google's token endpoint, upserts the row in `gmail_connections`, redirects back to a "Connected" state in the CRM.
+- **`netlify/functions/gmail-sync.ts`**, run on a schedule (Netlify Scheduled Functions, configured in `netlify.toml` with a cron expression - e.g. every 15 minutes): for each connected profile, refreshes the access token if needed, calls the Gmail API's `messages.list` filtered to `after:<last_synced_at>`, fetches each new message's full content, extracts From/To/Cc addresses, matches them against `email_addresses.email` to find a `person_id`, and logs an `activities` row (`activity_type = 'email'`, `subject_type = 'people'`, `body` = the email content, `metadata` = `{gmail_message_id, thread_id, subject, from, to}`) against the matching candidate. Reuses the `activities` table Stage 2 already built and its existing RLS (admin/recruiter read, append-only) — no new activity-visibility rules needed.
+  - **v1 scope, disclosed**: only matches to `people` (candidates and any other person record), not firms directly — firm-level contact matching needs the spec's `firm_contacts` table (person ↔ firm ↔ role), which doesn't exist yet. A reasonable v2 addition once that table exists, not blocking v1.
+  - **v1 scope, disclosed**: uses `messages.list` with an `after:` date filter rather than the more robust (but more complex) `history.list` + `historyId` incremental-sync API. Simpler to get right first, and fine at this project's email volume; worth revisiting only if sync starts missing messages or becomes slow.
+- **UI**: a small "Email sync" section on the Dashboard (or its own `/settings` page) showing connection status (connected as `<email>` / not connected), a "Connect Gmail" button (hits `gmail-oauth-start`), and a "Sync now" button for an on-demand run alongside the scheduled one.
+- **Activity feed already renders `body`** (built in Stage 2) — a synced email just shows up there like any manually-logged note, with `activity_type = 'email'` distinguishing it visually (e.g. an envelope icon or different label).
+
+## Verification
+
+- `supabase/tests/gmail_connections.sql`: `set local role authenticated`, confirm no client role (including admin) can read/write `gmail_connections` directly — only the service-role path should work, and that can't be exercised from this SQL test channel (matches how `record_unsubscribe`/`process_email_event` are handled).
+- The address-matching logic (email → person_id) is pure function logic worth a Vitest unit test independent of any real Gmail data, similar to `unsubscribeToken.test.ts`.
+- The actual OAuth flow and sync can only be verified live, with your real Google account connected — I'll need you to click "Connect Gmail" and authorize it yourself (another `AskUserQuestion`-gated, "only you can click this" step), then confirm a real email shows up in a candidate's activity feed.
+- `npm run validate` before every push, same as every prior stage.
+
+## Sizing
+
+This is bigger than any single stage above — a new external service, a new auth flow, a scheduled background job, and a new sensitive-data table. Building it in its own sub-steps (table + RLS test, OAuth start/callback, then the sync function, then the UI), verifying each before the next, the same discipline as Milestones 1-6 and Stages 1-3.

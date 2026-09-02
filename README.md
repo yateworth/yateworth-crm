@@ -443,6 +443,16 @@ npm run validate     # typecheck + lint + test + build, in order
   `docs/crm-functionality-plan.md`: making the survey section its own
   clickable page instead of a dashboard widget (Stage 4) is what's left
   of the original 4-stage plan.
+- **Gmail sync — in progress**, full plan in `docs/crm-functionality-plan.md`
+  under "Gmail sync (separate initiative)". `gmail_connections` table is
+  live: holds OAuth tokens, deliberately has zero policies for any client
+  role (not even admin) — only a Netlify function using the service role
+  can ever touch it, verified live (`supabase/tests/gmail_connections.sql`).
+  The from/to/cc → candidate matching logic
+  (`netlify/functions/_shared/gmailMatching.ts`) is built and unit-tested
+  (11 tests) independent of any real Gmail data. **Not built yet**: the
+  actual OAuth flow and the sync function — both need a Google Cloud
+  project only you can create (steps are in the plan doc).
 - **Phase 2 remaining**: matching, Apollo promotion, duplicate/near-match
   detection.
 - **Phase 3**: interviews, offers, placements, fee tracking.
