@@ -132,7 +132,7 @@ export function DashboardPage() {
           </section>
         )}
 
-        {pipeline && (pipeline.open_jobs.length > 0 || pipeline.closed_jobs.length > 0) && (
+        {pipeline && (
           <section>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-sec">Jobs pipeline</h2>
             <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
