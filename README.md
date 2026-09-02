@@ -7,10 +7,15 @@ Built per `docs/Recruitment_CRM_Build_Specification.md`, in gated phases.
 - **Milestone 2 (permission ledger)** — done. `communication_preferences`,
   `consent_events`, `suppression_entries`, and the `can_send_email()`
   eligibility check every future send has to run.
+- **Milestone 3 (anonymous survey)** — done. The real Australian Legal
+  Survey question set (matching `survey-form.html` on the marketing site),
+  a public read endpoint, a public submission endpoint, and a separate
+  report/permission endpoint — proven, by schema and by test, to never
+  share an identifier with the survey answers.
 
 Connected to a real (free-tier) Supabase project. Not connected yet:
-Netlify, Apollo, or an email provider. No public-facing form or send path
-exists yet — that's Milestone 3 onward.
+Netlify, Apollo, or an email provider. The marketing site's survey pages
+don't call these endpoints yet — see "Wiring up the live site" below.
 
 ## Stack
 
@@ -25,21 +30,26 @@ Level Security).
 - `netlify/functions/` — the pattern for server-side code (secrets never
   reach the browser). `health.ts` is a working example that just confirms
   env vars are set.
-- `supabase/migrations/` — five migrations: extensions/enums, `profiles` +
-  roles + RLS, audit logging, the minimal `firms`/`people`/
-  `email_addresses`/`candidate_profiles` tables (with RLS) needed to seed
-  fictional data, an audit-trigger bugfix, and the permission ledger
-  (`communication_preferences`, `consent_events`, `suppression_entries`,
-  `can_send_email()`, `admin_add_suppression()`).
+- `supabase/migrations/` — extensions/enums, `profiles` + roles + RLS,
+  audit logging, the minimal `firms`/`people`/`email_addresses`/
+  `candidate_profiles` tables needed to seed fictional data, an
+  audit-trigger bugfix, the permission ledger (`communication_preferences`,
+  `consent_events`, `suppression_entries`, `can_send_email()`,
+  `admin_add_suppression()`), the corrected all_marketing/report
+  interaction, and the anonymous survey (`surveys`, `survey_questions`,
+  `survey_options`, `survey_responses`, `survey_answers`,
+  `report_requests`, `get_active_survey()`, `submit_survey_response()`,
+  `submit_permission_request()`) plus the real Legal Survey question data.
 - `supabase/seed/seed.sql` — fictional firms/people/candidates only.
-- `supabase/tests/permission_ledger.sql` — SQL assertions proving
-  `can_send_email()`'s decision logic against a real database (see
-  "Testing against the live database" below).
+- `supabase/tests/permission_ledger.sql`, `supabase/tests/anonymous_survey.sql`
+  — SQL assertions run against the real database (see "Testing against the
+  live database" below), including a schema-level proof that
+  `survey_responses`/`survey_answers` carry no identity column and
+  `report_requests` carries no survey-response reference.
 
-Nothing beyond this exists yet — no jobs, submissions, surveys, campaigns,
-or Apollo integration, and no public-facing form writes to the permission
-ledger yet (that's Milestone 3). Those land in Phase 1 and Phase 2 per the
-spec.
+Nothing beyond this exists yet — no jobs, submissions, campaigns, or
+Apollo integration. Those land in Phase 1 (Milestones 4-6) and Phase 2 per
+the spec.
 
 ## Getting this running for real
 
@@ -113,6 +123,36 @@ get built in later phases). Netlify builds and deploys automatically on
 every push to `main`, the same way GitHub Pages did for the marketing
 site — the difference is Netlify also runs `netlify/functions/*` as
 serverless endpoints and keeps the secret env vars server-side.
+
+## Wiring up the live site (not done yet)
+
+The marketing site's `survey-form.html` and `knowyourworth.html` currently
+run in "preview mode" — their `ENDPOINT`/`CONTACT_ENDPOINT` variables are
+empty, so submissions just show a thank-you screen and go nowhere. The
+functions in this repo (`get_active_survey`, `submit_survey_response`,
+`submit_permission_request`) are callable right now over Supabase's
+public REST API using only the anon key — no Netlify function needed for
+this particular flow, since none of it touches a secret. Two things stand
+between that and actually working:
+
+1. **The payload shape doesn't match yet.** The site's JS currently
+   `POST`s a flat object with the site's own field names
+   (`state`/`role`/.../`submitted_at`) straight to `ENDPOINT`. Supabase's
+   RPC endpoint (`/rest/v1/rpc/submit_survey_response`) expects a JSON
+   object whose keys match the function's parameter names
+   (`p_slug`, `p_answers`, `p_broad_source`) — so the site's submit
+   handler needs a small rewrite to build `p_answers` as a nested object
+   and call the two endpoints with `apikey`/`Authorization` headers set
+   to the anon key, not just a bare `fetch(ENDPOINT, ...)`.
+2. **The survey is still `status = 'draft'`** in the database (not
+   reachable via `get_active_survey`) until you're ready to actually go
+   live — flip it with the SQL in the migration's header comment when
+   the pay bands and closing date are set.
+
+I've deliberately held off doing this rewrite until you confirm you want
+it — it's a real (small) code change to a page that's already live and
+publicly promising anonymity, so it's worth reviewing rather than me
+quietly redeploying it.
 
 ## Testing against the live database
 

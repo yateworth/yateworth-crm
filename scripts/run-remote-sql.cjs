@@ -41,10 +41,9 @@ fetch(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
   console.log(text)
   if (!r.ok) {
     console.error(`Request failed: HTTP ${r.status}`)
-    process.exit(1)
-  }
-  if (/"result":"FAIL/.test(text)) {
+    process.exitCode = 1
+  } else if (/"result":"FAIL/.test(text)) {
     console.error('One or more assertions failed — see output above.')
-    process.exit(1)
+    process.exitCode = 1
   }
 })
