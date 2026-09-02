@@ -55,8 +55,24 @@ export async function fetchJob(id: string): Promise<JobWithFirm> {
   return data as unknown as JobWithFirm
 }
 
-export async function createJob(values: JobFormValues): Promise<void> {
-  const { error } = await supabase.from('jobs').insert({
+export function jobToFormValues(job: Job): JobFormValues {
+  return {
+    firmId: job.firm_id,
+    title: job.title,
+    practiceArea: job.practice_area ?? '',
+    location: job.location ?? '',
+    employmentType: job.employment_type ?? '',
+    minPqe: job.min_pqe?.toString() ?? '',
+    maxPqe: job.max_pqe?.toString() ?? '',
+    salaryMin: job.salary_min?.toString() ?? '',
+    salaryMax: job.salary_max?.toString() ?? '',
+    feePercent: job.fee_percent?.toString() ?? '',
+    description: job.description ?? '',
+  }
+}
+
+function formValuesToRow(values: JobFormValues) {
+  return {
     firm_id: values.firmId,
     title: values.title,
     practice_area: values.practiceArea || null,
@@ -68,9 +84,20 @@ export async function createJob(values: JobFormValues): Promise<void> {
     salary_max: values.salaryMax ? Number(values.salaryMax) : null,
     fee_percent: values.feePercent ? Number(values.feePercent) : null,
     description: values.description || null,
+  }
+}
+
+export async function createJob(values: JobFormValues): Promise<void> {
+  const { error } = await supabase.from('jobs').insert({
+    ...formValuesToRow(values),
     status: 'open',
     opened_at: new Date().toISOString(),
   })
+  if (error) throw error
+}
+
+export async function updateJob(id: string, values: JobFormValues): Promise<void> {
+  const { error } = await supabase.from('jobs').update(formValuesToRow(values)).eq('id', id)
   if (error) throw error
 }
 

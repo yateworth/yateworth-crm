@@ -500,6 +500,18 @@ npm run validate     # typecheck + lint + test + build, in order
   single standing agreement, which is exactly why this needed its own
   field rather than reusing job status. `FirmDetail` shows/edits both;
   the firms list shows the stage as a column.
+- **Jobs can be edited after creation** - a real gap: Candidates and
+  Firms both had full edit forms from Stage 1, but `JobDetail` only ever
+  let you change status. New `updateJob()`/`jobToFormValues()`, and the
+  create/edit field set is now a shared `JobForm` component (matching
+  the `CandidateForm`/`FirmForm` pattern) used by both `/jobs` (create)
+  and `/jobs/:id` (edit) instead of duplicating the fields inline.
+  `JobDetail` also gained a proper read-only details view for every
+  field a job has - practice area, location, employment type, PQE
+  range, salary range, fee % and description were all being collected
+  since Stage 3 but never actually shown or editable, only title and
+  firm name were. Found `employmentType` had been sitting in
+  `JobFormValues` unused the entire time; it's now a real form field.
 - **Dashboard reworked around direct feedback**: "nothing is relevant"
   about the Overview section (report requests/opt-ins/suppressions/
   campaign+message status from `dashboard_summary()`) and the Surveys

@@ -1,10 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import { FileAttachments } from '@/components/FileAttachments'
+import { JobForm } from '@/components/JobForm'
 import { StatusBadge, jobStatusTone, submissionStageTone } from '@/components/StatusBadge'
 import { useAuth } from '@/contexts/AuthContext'
-import { fetchJob, setJobStatus, type JobWithFirm, type JobStatus } from '@/lib/jobs'
+import {
+  fetchJob,
+  setJobStatus,
+  updateJob,
+  jobToFormValues,
+  emptyJobForm,
+  type JobWithFirm,
+  type JobStatus,
+  type JobFormValues,
+} from '@/lib/jobs'
 import {
   fetchSubmissionsForJob,
   submitCandidateToJob,
@@ -33,6 +43,9 @@ export function JobDetailPage() {
   const [selectedCandidateId, setSelectedCandidateId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [values, setValues] = useState<JobFormValues>(emptyJobForm)
 
   async function load() {
     if (!id) return
@@ -44,6 +57,7 @@ export function JobDetailPage() {
         fetchCandidates('active'),
       ])
       setJob(jobResult)
+      setValues(jobToFormValues(jobResult))
       setSubmissions(submissionsResult)
       setCandidates(candidatesResult)
       setError(null)
@@ -57,6 +71,21 @@ export function JobDetailPage() {
   useEffect(() => {
     load()
   }, [id])
+
+  async function handleSave() {
+    if (!id) return
+    setSaving(true)
+    setError(null)
+    try {
+      await updateJob(id, values)
+      setEditing(false)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save changes.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function handleAddCandidate() {
     if (!id || !selectedCandidateId) return
@@ -122,8 +151,8 @@ export function JobDetailPage() {
           <p className="text-sm text-sec">{job.firms?.name}</p>
         </div>
         <div className="flex items-center gap-3">
-          <StatusBadge label={job.status.replace('_', ' ')} tone={jobStatusTone[job.status] ?? 'neutral'} />
-          {canManage && (
+          {!editing && <StatusBadge label={job.status.replace('_', ' ')} tone={jobStatusTone[job.status] ?? 'neutral'} />}
+          {canManage && !editing && (
             <select
               value={job.status}
               onChange={(e) => handleStatusChange(e.target.value as JobStatus)}
@@ -136,6 +165,37 @@ export function JobDetailPage() {
               ))}
             </select>
           )}
+          {canManage && (
+            <>
+              {editing ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setEditing(false)
+                      setValues(jobToFormValues(job))
+                    }}
+                    className="rounded-md border border-ink/20 px-3 py-1.5 text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="rounded-lg border-2 border-ox bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift disabled:opacity-50"
+                  >
+                    {saving ? 'Saving…' : 'Save'}
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="rounded-lg border-2 border-ox bg-ox px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ox-lift"
+                >
+                  Edit
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -143,7 +203,37 @@ export function JobDetailPage() {
         <div className="mt-4 rounded-lg border border-ox/30 bg-ox/5 p-3 text-sm text-ox">{error}</div>
       )}
 
-      {canManage && (
+      <div className="mt-4 rounded-lg border border-ink/10 bg-paper p-5">
+        {editing ? (
+          <JobForm values={values} onChange={setValues} />
+        ) : (
+          <dl className="grid grid-cols-2 gap-4 text-sm">
+            <Field label="Practice area" value={job.practice_area} />
+            <Field label="Location" value={job.location} />
+            <Field label="Employment type" value={job.employment_type} />
+            <Field
+              label="PQE range"
+              value={
+                job.min_pqe != null || job.max_pqe != null ? `${job.min_pqe ?? '—'} to ${job.max_pqe ?? '—'}` : null
+              }
+            />
+            <Field
+              label="Salary range"
+              value={
+                job.salary_min != null || job.salary_max != null
+                  ? `$${job.salary_min?.toLocaleString() ?? '—'} to $${job.salary_max?.toLocaleString() ?? '—'}`
+                  : null
+              }
+            />
+            <Field label="Fee %" value={job.fee_percent != null ? `${job.fee_percent}%` : null} />
+            <div className="col-span-2">
+              <Field label="Description" value={job.description} />
+            </div>
+          </dl>
+        )}
+      </div>
+
+      {!editing && canManage && (
         <div className="mt-4 flex gap-2">
           <select
             value={selectedCandidateId}
@@ -223,5 +313,14 @@ export function JobDetailPage() {
         <FileAttachments subjectType="jobs" subjectId={job.id} />
       </div>
     </Layout>
+  )
+}
+
+function Field({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium uppercase tracking-wide text-ink/40">{label}</dt>
+      <dd className="mt-0.5 text-ink">{value || '—'}</dd>
+    </div>
   )
 }
