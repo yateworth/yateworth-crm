@@ -1,107 +1,79 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
+import { CandidateForm } from '@/components/CandidateForm'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
-
-interface CandidateRow {
-  id: string
-  first_name: string
-  last_name: string
-  phone: string | null
-  location: string | null
-  candidate_profiles: {
-    current_title: string | null
-    practice_areas: string[]
-    years_pqe: number | null
-    candidate_status: string
-  } | null
-  email_addresses: { email: string; is_primary: boolean }[]
-}
-
-function primaryEmail(candidate: CandidateRow): string {
-  const primary = candidate.email_addresses.find((e) => e.is_primary)
-  return primary?.email ?? candidate.email_addresses[0]?.email ?? '—'
-}
+import {
+  fetchCandidates,
+  createCandidate,
+  primaryEmail,
+  emptyCandidateForm,
+  type Candidate,
+  type CandidateFormValues,
+  type RecordStatus,
+} from '@/lib/candidates'
 
 export function CandidatesPage() {
   const { profile } = useAuth()
   const canManage = profile?.role === 'admin' || profile?.role === 'recruiter'
 
-  const [candidates, setCandidates] = useState<CandidateRow[]>([])
+  const [status, setStatus] = useState<RecordStatus>('active')
+  const [candidates, setCandidates] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [values, setValues] = useState<CandidateFormValues>(emptyCandidateForm)
 
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [location, setLocation] = useState('')
-  const [currentTitle, setCurrentTitle] = useState('')
-  const [practiceAreas, setPracticeAreas] = useState('')
-  const [yearsPqe, setYearsPqe] = useState('')
-
-  async function loadCandidates() {
+  async function load() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('people')
-      .select(
-        'id, first_name, last_name, phone, location, candidate_profiles!inner(current_title, practice_areas, years_pqe, candidate_status), email_addresses(email, is_primary)',
-      )
-      .order('created_at', { ascending: false })
-    if (error) {
-      setError(error.message)
-    } else {
-      setCandidates(data as unknown as CandidateRow[])
+    try {
+      setCandidates(await fetchCandidates(status))
       setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load candidates.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   useEffect(() => {
-    loadCandidates()
-  }, [])
+    load()
+  }, [status])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
-
-    const { error } = await supabase.rpc('create_candidate', {
-      p_first_name: firstName,
-      p_last_name: lastName,
-      p_email: email,
-      p_phone: phone || undefined,
-      p_location: location || undefined,
-      p_current_title: currentTitle || undefined,
-      p_practice_areas: practiceAreas
-        ? practiceAreas.split(',').map((s) => s.trim()).filter(Boolean)
-        : undefined,
-      p_years_pqe: yearsPqe ? Number(yearsPqe) : undefined,
-    })
-
-    setSubmitting(false)
-    if (error) {
-      setError(error.message)
-      return
+    try {
+      await createCandidate(values)
+      setValues(emptyCandidateForm)
+      setShowForm(false)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save this candidate.')
+    } finally {
+      setSubmitting(false)
     }
-    setFirstName('')
-    setLastName('')
-    setEmail('')
-    setPhone('')
-    setLocation('')
-    setCurrentTitle('')
-    setPracticeAreas('')
-    setYearsPqe('')
-    setShowForm(false)
-    loadCandidates()
   }
 
   return (
     <Layout>
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-neutral-900">Candidates</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-semibold text-neutral-900">Candidates</h1>
+          <div className="flex rounded-md border border-neutral-300 text-sm">
+            {(['active', 'archived'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatus(s)}
+                className={`px-3 py-1 capitalize ${status === s ? 'bg-neutral-900 text-white' : 'text-neutral-600'}`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
         {canManage && (
           <button
             onClick={() => setShowForm((s) => !s)}
@@ -113,110 +85,12 @@ export function CandidatesPage() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {error}
-        </div>
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3 rounded-lg border border-neutral-200 bg-white p-5">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="c-first" className="block text-sm font-medium text-neutral-700">
-                First name
-              </label>
-              <input
-                id="c-first"
-                required
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="c-last" className="block text-sm font-medium text-neutral-700">
-                Last name
-              </label>
-              <input
-                id="c-last"
-                required
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="c-email" className="block text-sm font-medium text-neutral-700">
-                Email
-              </label>
-              <input
-                id="c-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="c-phone" className="block text-sm font-medium text-neutral-700">
-                Phone
-              </label>
-              <input
-                id="c-phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="c-location" className="block text-sm font-medium text-neutral-700">
-                Location
-              </label>
-              <input
-                id="c-location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="c-title" className="block text-sm font-medium text-neutral-700">
-                Current title
-              </label>
-              <input
-                id="c-title"
-                value={currentTitle}
-                onChange={(e) => setCurrentTitle(e.target.value)}
-                className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="c-areas" className="block text-sm font-medium text-neutral-700">
-                Practice areas (comma-separated)
-              </label>
-              <input
-                id="c-areas"
-                value={practiceAreas}
-                onChange={(e) => setPracticeAreas(e.target.value)}
-                className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="c-pqe" className="block text-sm font-medium text-neutral-700">
-                Years PQE
-              </label>
-              <input
-                id="c-pqe"
-                type="number"
-                min="0"
-                step="0.5"
-                value={yearsPqe}
-                onChange={(e) => setYearsPqe(e.target.value)}
-                className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
-              />
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4 rounded-lg border border-neutral-200 bg-white p-5">
+          <CandidateForm values={values} onChange={setValues} />
           <button
             type="submit"
             disabled={submitting}
@@ -231,7 +105,7 @@ export function CandidatesPage() {
         {loading ? (
           <p className="text-sm text-neutral-500">Loading…</p>
         ) : candidates.length === 0 ? (
-          <p className="text-sm text-neutral-400">No candidates yet.</p>
+          <p className="text-sm text-neutral-400">No {status} candidates.</p>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
             <table className="w-full text-sm">
@@ -247,9 +121,11 @@ export function CandidatesPage() {
               </thead>
               <tbody>
                 {candidates.map((c) => (
-                  <tr key={c.id} className="border-b border-neutral-100 last:border-0">
+                  <tr key={c.id} className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
                     <td className="p-3 font-medium text-neutral-900">
-                      {c.first_name} {c.last_name}
+                      <Link to={`/candidates/${c.id}`} className="hover:underline">
+                        {c.first_name} {c.last_name}
+                      </Link>
                     </td>
                     <td className="p-3 text-neutral-600">{primaryEmail(c)}</td>
                     <td className="p-3 text-neutral-600">{c.candidate_profiles?.current_title ?? '—'}</td>

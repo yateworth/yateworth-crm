@@ -4,7 +4,9 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { LoginPage } from '@/pages/Login'
 import { DashboardPage } from '@/pages/Dashboard'
 import { CandidatesPage } from '@/pages/Candidates'
+import { CandidateDetailPage } from '@/pages/CandidateDetail'
 import { FirmsPage } from '@/pages/Firms'
+import { FirmDetailPage } from '@/pages/FirmDetail'
 
 export default function App() {
   return (
@@ -29,10 +31,26 @@ export default function App() {
             }
           />
           <Route
+            path="/candidates/:id"
+            element={
+              <ProtectedRoute>
+                <CandidateDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/firms"
             element={
               <ProtectedRoute>
                 <FirmsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/firms/:id"
+            element={
+              <ProtectedRoute>
+                <FirmDetailPage />
               </ProtectedRoute>
             }
           />
