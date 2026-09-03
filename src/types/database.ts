@@ -777,6 +777,7 @@ export type Database = {
           id: string
           sent_at: string | null
           sent_to_person_id: string | null
+          signature_image: string | null
           signature_ip: string | null
           signed_at: string | null
           signed_by_email: string | null
@@ -795,6 +796,7 @@ export type Database = {
           id?: string
           sent_at?: string | null
           sent_to_person_id?: string | null
+          signature_image?: string | null
           signature_ip?: string | null
           signed_at?: string | null
           signed_by_email?: string | null
@@ -813,6 +815,7 @@ export type Database = {
           id?: string
           sent_at?: string | null
           sent_to_person_id?: string | null
+          signature_image?: string | null
           signature_ip?: string | null
           signed_at?: string | null
           signed_by_email?: string | null
@@ -1873,6 +1876,7 @@ export type Database = {
           id: string
           sent_at: string | null
           sent_to_person_id: string | null
+          signature_image: string | null
           signature_ip: string | null
           signed_at: string | null
           signed_by_email: string | null
@@ -1974,6 +1978,7 @@ export type Database = {
           id: string
           sent_at: string | null
           sent_to_person_id: string | null
+          signature_image: string | null
           signature_ip: string | null
           signed_at: string | null
           signed_by_email: string | null
@@ -2038,6 +2043,7 @@ export type Database = {
       record_contract_signature: {
         Args: {
           p_contract_id: string
+          p_signature_image?: string
           p_signature_ip: string
           p_signed_by_email: string
           p_signed_by_name: string
@@ -2052,6 +2058,7 @@ export type Database = {
           id: string
           sent_at: string | null
           sent_to_person_id: string | null
+          signature_image: string | null
           signature_ip: string | null
           signed_at: string | null
           signed_by_email: string | null
@@ -2158,6 +2165,7 @@ export type Database = {
           id: string
           sent_at: string | null
           sent_to_person_id: string | null
+          signature_image: string | null
           signature_ip: string | null
           signed_at: string | null
           signed_by_email: string | null

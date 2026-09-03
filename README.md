@@ -350,6 +350,51 @@ there instead of in an email. Purely a staff-facing convenience — the
 link itself is nothing a recipient wouldn't already be emailed, so
 showing it to the person who just sent it has no privacy implication.
 
+**Further follow-ups, same day**: three more requests against this
+feature, in order.
+
+1. A "Preview" action next to every contract/invoice in
+   `FirmContracts.tsx`/`JobDetail.tsx`, not just the one just sent — the
+   original link only ever showed up once, in a dismissible banner, with
+   nothing to fall back on if you dismissed it or left the page. New
+   `document-link.ts` mints a fresh signed token for any already-created
+   contract or invoice (any status — sign-contract.ts/view-invoice.ts
+   already render the right thing for whichever status it's in), so
+   staff can go back and pull the link up again on demand.
+2. Branding: the signing/invoice pages looked like a bare utility page
+   even though it's the one place a firm contact who's never seen the
+   CRM forms an impression of it. Both now render as actual Yateworth
+   letterhead — the same wordmark, font pairing and oxblood/ink/brass
+   palette as the app (ported from `src/index.css`) — with the document
+   date up top, and a "Download PDF" button on each (`window.print()`
+   plus print CSS hiding everything but the document — no PDF library
+   needed, every browser's print dialog already saves to PDF).
+3. A real drawn signature, not just a typed name: the signing page now
+   has an actual `<canvas>` signature pad (Pointer Events, so mouse,
+   touch and pen all work with one set of listeners) that has to be
+   drawn on before the form will submit, captured as a PNG data URL and
+   stored in a new `firm_contracts.signature_image` column
+   (`supabase/migrations/20260902000034_contract_drawn_signature.sql`).
+   The typed full name stays too, for the textual/legal record. Neither
+   is a certified e-signature (see the note at the top of migration 32
+   — that trade-off was made deliberately, not accidentally), just a
+   more convincing lightweight one. Worth knowing for that migration:
+   `create or replace function` matches on the exact parameter type
+   list, and this added a 5th parameter to `record_contract_signature`
+   — without an explicit `drop function` first, the old 4-argument
+   version would have stuck around as a second overload instead of
+   actually being replaced, so the migration drops it explicitly before
+   recreating it.
+
+Verification: extended `supabase/tests/contracts_and_invoices.sql`
+confirms only one `record_contract_signature` overload exists after the
+migration and that `signature_image` round-trips correctly (11/11
+still passing); `npm run validate` clean; the branded contract page
+(both the unsigned sign-form view and an already-signed view) checked
+live in the browser pane against a real contract in the database,
+including actually drawing a signature and watching the cursive-free
+canvas capture it correctly.
+
 ## Stack
 
 React + TypeScript + Vite + Tailwind, deployed to Netlify (static site +

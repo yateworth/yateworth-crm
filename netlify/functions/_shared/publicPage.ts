@@ -67,14 +67,14 @@ export function renderPublicPage(title: string, bodyHtml: string, dateLabel?: st
   td, th { text-align: left; padding: 10px 0; border-bottom: 1px solid var(--tint); font-size: 0.95rem; color: var(--sec); }
   .total-row td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: none; color: var(--ink); font-size: 1.05rem; }
 
-  /* The "sign here" box: a bordered panel with a live cursive preview of
-     the typed name, so this reads as an actual signature rather than a
-     plain text field - lightweight (no real e-signature vendor), but
-     dressed to feel like one. */
-  .signature-box { margin-top: 0.6rem; border: 1.5px dashed #cbc3b6; border-radius: 8px; padding: 20px; background: #fff; text-align: center; }
-  .signature-preview { font-family: "Dancing Script", cursive; font-size: 2.1rem; color: var(--ink); min-height: 2.6rem; border-bottom: 1.5px solid var(--ink); padding-bottom: 6px; }
-  .signature-preview.placeholder { color: #b6ada0; font-size: 1rem; font-family: "Archivo", sans-serif; }
+  /* The "sign here" box: a bordered panel holding an actual drawable
+     canvas, so this reads as tracing a real signature rather than
+     filling in a text field - still lightweight (no e-signature
+     vendor, no certification), just dressed to feel like one. */
+  .signature-box { margin-top: 0.6rem; border: 1.5px dashed #cbc3b6; border-radius: 8px; padding: 16px; background: #fff; text-align: center; }
+  .signature-box canvas { border: 1px solid #cbc3b6; border-radius: 6px; background: #fff; }
   .signature-caption { margin-top: 8px; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sec); }
+  .link-btn { background: none; border: none; color: var(--ox); padding: 0; margin-left: 8px; font-size: inherit; font-weight: 600; letter-spacing: normal; text-transform: none; text-decoration: underline; cursor: pointer; }
 
   .footer-note { padding: 18px 44px; font-size: 0.78rem; color: var(--sec); border-top: 1px solid var(--tint); }
 

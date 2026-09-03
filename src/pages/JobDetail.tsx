@@ -176,9 +176,16 @@ export function JobDetailPage() {
   async function handlePreviewInvoice(invoiceId: string) {
     setError(null)
     setPreviewingInvoiceId(invoiceId)
+    // Open the tab synchronously, in the same click handler, so the
+    // browser still counts it as a user-initiated action once the link
+    // resolves — an await first would get the popup blocked.
+    const tab = window.open('', '_blank')
     try {
-      setLastInvoiceLink(await fetchDocumentLink('invoice', invoiceId))
+      const link = await fetchDocumentLink('invoice', invoiceId)
+      if (tab) tab.location.href = link
+      else window.location.assign(link)
     } catch (err) {
+      tab?.close()
       setError(err instanceof Error ? err.message : 'Could not get this link.')
     } finally {
       setPreviewingInvoiceId(null)

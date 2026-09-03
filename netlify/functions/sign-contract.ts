@@ -21,6 +21,7 @@ interface ContractRow {
   created_at: string
   signed_at: string | null
   signed_by_name: string | null
+  signature_image: string | null
   firms: { name: string } | null
 }
 
@@ -40,29 +41,79 @@ const INVALID_LINK = '<h1>Link not valid</h1><p class="error">This link is inval
 async function fetchContract(admin: ReturnType<typeof getSupabaseAdmin>, contractId: string) {
   const { data } = await admin
     .from('firm_contracts')
-    .select('id, status, body_html_snapshot, created_at, signed_at, signed_by_name, firms(name)')
+    .select('id, status, body_html_snapshot, created_at, signed_at, signed_by_name, signature_image, firms(name)')
     .eq('id', contractId)
     .maybeSingle()
   return data as unknown as ContractRow | null
 }
 
-// A live cursive preview of the typed name, so the box reads as an
-// actual signature rather than a plain text field — this is still just
-// a typed name captured with a timestamp/IP (see the note at the top of
-// migration 32), not a certified e-signature, but it should feel like
-// signing something.
-const SIGNATURE_SCRIPT = `<script>
+// A real drawn signature, captured on a <canvas> and submitted as a PNG
+// data URL — the typed name field stays for the textual/legal record,
+// but this is what actually gets traced with the mouse/finger. Pointer
+// Events cover mouse, touch and pen with one set of listeners.
+const SIGNATURE_PAD_SCRIPT = `<script>
 (function () {
-  var input = document.getElementById('signedByName');
-  var preview = document.getElementById('signaturePreview');
-  if (!input || !preview) return;
-  function render() {
-    var v = input.value.trim();
-    preview.textContent = v || 'Your signature will appear here';
-    preview.classList.toggle('placeholder', !v);
+  var canvas = document.getElementById('signaturePad');
+  var clearBtn = document.getElementById('clearSignature');
+  var hiddenInput = document.getElementById('signatureImageInput');
+  var form = document.getElementById('signForm');
+  if (!canvas || !form) return;
+  var ctx = canvas.getContext('2d');
+  var drawing = false;
+  var hasDrawn = false;
+  var last = null;
+
+  function paintBackground() {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
-  input.addEventListener('input', render);
-  render();
+  ctx.lineWidth = 2.4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#11241c';
+  paintBackground();
+
+  function pos(e) {
+    var rect = canvas.getBoundingClientRect();
+    var scaleX = canvas.width / rect.width;
+    var scaleY = canvas.height / rect.height;
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+  }
+  function start(e) {
+    e.preventDefault();
+    drawing = true;
+    hasDrawn = true;
+    last = pos(e);
+  }
+  function move(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    var p = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    last = p;
+  }
+  function end() { drawing = false; }
+
+  canvas.addEventListener('pointerdown', start);
+  canvas.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', end);
+
+  clearBtn.addEventListener('click', function () {
+    paintBackground();
+    hasDrawn = false;
+  });
+
+  form.addEventListener('submit', function (e) {
+    if (!hasDrawn) {
+      e.preventDefault();
+      alert('Please provide your signature by drawing in the box.');
+      return;
+    }
+    hiddenInput.value = canvas.toDataURL('image/png');
+  });
 })();
 </script>`
 
@@ -72,6 +123,7 @@ function renderContractBody(contract: ContractRow, token: string, errorMessage?:
   }
   if (contract.status === 'signed') {
     return `<h1>Recruitment terms — signed</h1><p class="notice">Signed by ${escapeHtml(contract.signed_by_name ?? 'you')} on ${dateLabel(contract.signed_at!)}.</p>
+${contract.signature_image ? `<img src="${contract.signature_image}" alt="Signature" style="max-width:280px;height:auto;display:block;margin:12px 0">` : ''}
 ${contract.body_html_snapshot}
 <div class="actions no-print">
   <button class="btn btn-secondary" type="button" onclick="window.print()">Download PDF</button>
@@ -83,13 +135,14 @@ ${contract.body_html_snapshot}
 ${contract.body_html_snapshot}
 <h2>Sign this agreement</h2>
 ${errorMessage ? `<p class="error">${escapeHtml(errorMessage)}</p>` : ''}
-<form method="POST">
+<form method="POST" id="signForm">
   <input type="hidden" name="token" value="${escapeHtml(token)}">
+  <input type="hidden" name="signatureImage" id="signatureImageInput">
   <label for="signedByName">Your full name</label>
   <input type="text" id="signedByName" name="signedByName" required autocomplete="name">
   <div class="signature-box">
-    <div class="signature-preview placeholder" id="signaturePreview">Your signature will appear here</div>
-    <div class="signature-caption">Signature</div>
+    <canvas id="signaturePad" width="600" height="160" style="width:100%;max-width:600px;height:160px;border-radius:6px;touch-action:none;cursor:crosshair"></canvas>
+    <div class="signature-caption">Sign above with your mouse or finger <button type="button" id="clearSignature" class="link-btn">Clear</button></div>
   </div>
   <div class="checkbox-row">
     <input type="checkbox" id="agree" name="agree" value="yes" required>
@@ -100,7 +153,7 @@ ${errorMessage ? `<p class="error">${escapeHtml(errorMessage)}</p>` : ''}
     <button class="btn btn-secondary no-print" type="button" onclick="window.print()">Download PDF</button>
   </div>
 </form>
-${SIGNATURE_SCRIPT}`
+${SIGNATURE_PAD_SCRIPT}`
 }
 
 export default async (req: Request, context: Context) => {
@@ -134,9 +187,14 @@ export default async (req: Request, context: Context) => {
 
     const signedByName = String(form.get('signedByName') ?? '').trim()
     const agreed = form.get('agree') === 'yes'
-    if (!signedByName || !agreed) {
+    const signatureImage = String(form.get('signatureImage') ?? '').trim()
+    if (!signedByName || !agreed || !signatureImage.startsWith('data:image/')) {
       return html(
-        renderContractBody(contract, token, 'Please enter your full name and confirm you are authorised to sign.'),
+        renderContractBody(
+          contract,
+          token,
+          'Please enter your full name, draw your signature, and confirm you are authorised to sign.',
+        ),
         dateLabel(contract.created_at),
         400,
       )
@@ -164,6 +222,7 @@ export default async (req: Request, context: Context) => {
       p_signed_by_name: signedByName,
       p_signed_by_email: signedByEmail,
       p_signature_ip: context.ip,
+      p_signature_image: signatureImage,
     })
     if (error) {
       console.error('sign-contract: record_contract_signature failed', error)

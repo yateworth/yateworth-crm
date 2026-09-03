@@ -157,7 +157,7 @@ begin
   select result::uuid into v_contract_id from test_results where seq = 10;
   select split_part(result, ',', 1)::uuid into v_firm_id from test_results where seq = 0;
 
-  select * into v_contract from record_contract_signature(v_contract_id, 'Jamie Signer', 'jamie@contractstestfirm.example', '203.0.113.4');
+  select * into v_contract from record_contract_signature(v_contract_id, 'Jamie Signer', 'jamie@contractstestfirm.example', '203.0.113.4', 'data:image/png;base64,fake-signature-bytes');
   v_first_signed_at := v_contract.signed_at;
   select relationship_stage into v_stage from firms where id = v_firm_id;
 
@@ -167,8 +167,9 @@ begin
     case when v_contract.status = 'signed'
       and v_contract.signed_by_name = 'Jamie Signer'
       and v_contract.signed_at = v_first_signed_at
+      and v_contract.signature_image = 'data:image/png;base64,fake-signature-bytes'
       and v_stage = 'terms_signed'
-    then 'PASS 5: record_contract_signature is idempotent and advances the firm to terms_signed'
+    then 'PASS 5: record_contract_signature is idempotent, stores the drawn signature, and advances the firm to terms_signed'
     else 'FAIL 5: signature was overwritten or stage was not advanced (signed_by=' || v_contract.signed_by_name || ', stage=' || v_stage || ')' end);
 end $$;
 

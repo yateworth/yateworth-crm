@@ -77,9 +77,16 @@ export function FirmContracts({ firmId }: { firmId: string }) {
   async function handlePreview(id: string) {
     setError(null)
     setPreviewingId(id)
+    // Open the tab synchronously, in the same click handler, so the
+    // browser still counts it as a user-initiated action once the link
+    // resolves — an await first would get the popup blocked.
+    const tab = window.open('', '_blank')
     try {
-      setLastSignLink(await fetchDocumentLink('contract', id))
+      const link = await fetchDocumentLink('contract', id)
+      if (tab) tab.location.href = link
+      else window.location.assign(link)
     } catch (err) {
+      tab?.close()
       setError(err instanceof Error ? err.message : 'Could not get this link.')
     } finally {
       setPreviewingId(null)
