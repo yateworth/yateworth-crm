@@ -31,6 +31,8 @@ import {
   INVOICE_STATUSES,
   type JobPlacement,
 } from '@/lib/placements'
+import { fetchInvoicesForJob, sendInvoice, type JobInvoice } from '@/lib/invoices'
+import { fetchFirmContacts, type FirmContact } from '@/lib/firms'
 import { TONE_CLASSES, invoiceStatusTone } from '@/components/StatusBadge'
 
 const JOB_STATUSES: JobStatus[] = ['draft', 'open', 'on_hold', 'filled', 'closed', 'cancelled']
@@ -69,22 +71,30 @@ export function JobDetailPage() {
   const [recordingFeeFor, setRecordingFeeFor] = useState<string | null>(null)
   const [feeForm, setFeeForm] = useState({ startDate: '', salary: '', feeAmount: '', guaranteeEndDate: '' })
   const [savingFee, setSavingFee] = useState(false)
+  const [invoices, setInvoices] = useState<JobInvoice[]>([])
+  const [firmContacts, setFirmContacts] = useState<FirmContact[]>([])
+  const [sendingInvoiceFor, setSendingInvoiceFor] = useState<string | null>(null)
+  const [invoiceForm, setInvoiceForm] = useState({ contactPersonId: '', dueDays: '14' })
+  const [sendingInvoice, setSendingInvoice] = useState(false)
 
   async function load() {
     if (!id) return
     setLoading(true)
     try {
-      const [jobResult, submissionsResult, candidatesResult, placementsResult] = await Promise.all([
+      const [jobResult, submissionsResult, candidatesResult, placementsResult, invoicesResult] = await Promise.all([
         fetchJob(id),
         fetchSubmissionsForJob(id),
         fetchCandidates('active'),
         fetchPlacementsForJob(id),
+        fetchInvoicesForJob(id),
       ])
       setJob(jobResult)
       setValues(jobToFormValues(jobResult))
       setSubmissions(submissionsResult)
       setCandidates(candidatesResult)
       setPlacements(placementsResult)
+      setInvoices(invoicesResult)
+      setFirmContacts(await fetchFirmContacts(jobResult.firm_id))
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load this job.')
@@ -102,6 +112,8 @@ export function JobDetailPage() {
     setEditing(false)
     setRecordingFeeFor(null)
     setFeeForm({ startDate: '', salary: '', feeAmount: '', guaranteeEndDate: '' })
+    setSendingInvoiceFor(null)
+    setInvoiceForm({ contactPersonId: '', dueDays: '14' })
     load()
   }, [id])
 
@@ -132,6 +144,26 @@ export function JobDetailPage() {
       setError(err instanceof Error ? err.message : 'Could not record this fee.')
     } finally {
       setSavingFee(false)
+    }
+  }
+
+  async function handleSendInvoice(placementId: string) {
+    if (!invoiceForm.contactPersonId) return
+    setSendingInvoice(true)
+    setError(null)
+    try {
+      await sendInvoice({
+        placementId,
+        contactPersonId: invoiceForm.contactPersonId,
+        dueDays: invoiceForm.dueDays ? Number(invoiceForm.dueDays) : undefined,
+      })
+      setSendingInvoiceFor(null)
+      setInvoiceForm({ contactPersonId: '', dueDays: '14' })
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send this invoice.')
+    } finally {
+      setSendingInvoice(false)
     }
   }
 
@@ -367,6 +399,83 @@ export function JobDetailPage() {
                                       ))}
                                     </select>
                                   )}
+                                  {canManage &&
+                                    (() => {
+                                      const invoice = invoices.find((inv) => inv.placement_id === placement.id)
+                                      const contactsWithEmail = firmContacts.filter((c) => c.email)
+                                      if (invoice) {
+                                        return (
+                                          <p className="text-xs text-ink/40">
+                                            Invoice {invoice.invoice_number} sent{' '}
+                                            {invoice.sent_at ? new Date(invoice.sent_at).toLocaleDateString() : '—'}
+                                            {invoice.viewed_at && ' · viewed'}
+                                          </p>
+                                        )
+                                      }
+                                      if (sendingInvoiceFor === s.id) {
+                                        return (
+                                          <div className="space-y-1 rounded border border-ink/10 p-2">
+                                            {contactsWithEmail.length === 0 ? (
+                                              <p className="text-xs text-ink/40">
+                                                Add a firm contact with an email first.
+                                              </p>
+                                            ) : (
+                                              <>
+                                                <select
+                                                  value={invoiceForm.contactPersonId}
+                                                  onChange={(e) =>
+                                                    setInvoiceForm((f) => ({ ...f, contactPersonId: e.target.value }))
+                                                  }
+                                                  className="w-full rounded border border-ink/20 px-1.5 py-1 text-xs"
+                                                >
+                                                  <option value="">Send to…</option>
+                                                  {contactsWithEmail.map((c) => (
+                                                    <option key={c.person_id} value={c.person_id}>
+                                                      {c.first_name} {c.last_name}
+                                                    </option>
+                                                  ))}
+                                                </select>
+                                                <input
+                                                  type="number"
+                                                  placeholder="Due (days)"
+                                                  value={invoiceForm.dueDays}
+                                                  onChange={(e) =>
+                                                    setInvoiceForm((f) => ({ ...f, dueDays: e.target.value }))
+                                                  }
+                                                  className="w-full rounded border border-ink/20 px-1.5 py-1 text-xs"
+                                                />
+                                              </>
+                                            )}
+                                            <div className="flex gap-1">
+                                              <button
+                                                onClick={() => setSendingInvoiceFor(null)}
+                                                className="flex-1 rounded border border-ink/20 px-1.5 py-1 text-xs text-sec"
+                                              >
+                                                Cancel
+                                              </button>
+                                              <button
+                                                onClick={() => handleSendInvoice(placement.id)}
+                                                disabled={sendingInvoice || !invoiceForm.contactPersonId}
+                                                className="flex-1 rounded border-2 border-ox bg-ox px-1.5 py-1 text-xs font-semibold text-white hover:bg-ox-lift disabled:opacity-50"
+                                              >
+                                                {sendingInvoice ? 'Sending…' : 'Send'}
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )
+                                      }
+                                      return (
+                                        <button
+                                          onClick={() => {
+                                            setSendingInvoiceFor(s.id)
+                                            setInvoiceForm({ contactPersonId: '', dueDays: '14' })
+                                          }}
+                                          className="text-xs text-ox hover:underline"
+                                        >
+                                          Send invoice →
+                                        </button>
+                                      )
+                                    })()}
                                 </div>
                               )
                             }

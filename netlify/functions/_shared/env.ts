@@ -52,6 +52,15 @@ export function getUnsubscribeTokenSecret() {
   return required('UNSUBSCRIBE_TOKEN_SECRET')
 }
 
+/**
+ * Lazily validated — only the contract-signing and invoice-viewing
+ * endpoints need this. Deliberately separate from
+ * UNSUBSCRIBE_TOKEN_SECRET (see documentToken.ts).
+ */
+export function getDocumentTokenSecret() {
+  return required('DOCUMENT_TOKEN_SECRET')
+}
+
 /** Lazily validated — only the quick-add note parser needs this. */
 export function getAnthropicEnv() {
   return { apiKey: required('ANTHROPIC_API_KEY') }

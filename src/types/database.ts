@@ -449,6 +449,41 @@ export type Database = {
           },
         ]
       }
+      contract_templates: {
+        Row: {
+          body_html: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          body_html: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_addresses: {
         Row: {
           created_at: string
@@ -731,6 +766,92 @@ export type Database = {
           },
         ]
       }
+      firm_contracts: {
+        Row: {
+          body_html_snapshot: string
+          created_at: string
+          created_by: string | null
+          fee_percent: number | null
+          firm_id: string
+          guarantee_days: number | null
+          id: string
+          sent_at: string | null
+          sent_to_person_id: string | null
+          signature_ip: string | null
+          signed_at: string | null
+          signed_by_email: string | null
+          signed_by_name: string | null
+          status: Database["public"]["Enums"]["contract_status"]
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          body_html_snapshot: string
+          created_at?: string
+          created_by?: string | null
+          fee_percent?: number | null
+          firm_id: string
+          guarantee_days?: number | null
+          id?: string
+          sent_at?: string | null
+          sent_to_person_id?: string | null
+          signature_ip?: string | null
+          signed_at?: string | null
+          signed_by_email?: string | null
+          signed_by_name?: string | null
+          status?: Database["public"]["Enums"]["contract_status"]
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body_html_snapshot?: string
+          created_at?: string
+          created_by?: string | null
+          fee_percent?: number | null
+          firm_id?: string
+          guarantee_days?: number | null
+          id?: string
+          sent_at?: string | null
+          sent_to_person_id?: string | null
+          signature_ip?: string | null
+          signed_at?: string | null
+          signed_by_email?: string | null
+          signed_by_name?: string | null
+          status?: Database["public"]["Enums"]["contract_status"]
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "firm_contracts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "firm_contracts_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "firm_contracts_sent_to_person_id_fkey"
+            columns: ["sent_to_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "firm_contracts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       firms: {
         Row: {
           address: Json
@@ -840,6 +961,79 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          due_at: string | null
+          gst_amount: number
+          id: string
+          invoice_number: string
+          issued_at: string
+          placement_id: string
+          sent_at: string | null
+          sent_to_person_id: string | null
+          total_amount: number
+          updated_at: string
+          viewed_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          gst_amount?: number
+          id?: string
+          invoice_number: string
+          issued_at?: string
+          placement_id: string
+          sent_at?: string | null
+          sent_to_person_id?: string | null
+          total_amount: number
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          gst_amount?: number
+          id?: string
+          invoice_number?: string
+          issued_at?: string
+          placement_id?: string
+          sent_at?: string | null
+          sent_to_person_id?: string | null
+          total_amount?: number
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "placements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_sent_to_person_id_fkey"
+            columns: ["sent_to_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
@@ -1661,6 +1855,39 @@ export type Database = {
         }
         Returns: string
       }
+      create_contract: {
+        Args: {
+          p_fee_percent: number
+          p_firm_id: string
+          p_guarantee_days: number
+          p_sent_to_person_id: string
+          p_template_id: string
+        }
+        Returns: {
+          body_html_snapshot: string
+          created_at: string
+          created_by: string | null
+          fee_percent: number | null
+          firm_id: string
+          guarantee_days: number | null
+          id: string
+          sent_at: string | null
+          sent_to_person_id: string | null
+          signature_ip: string | null
+          signed_at: string | null
+          signed_by_email: string | null
+          signed_by_name: string | null
+          status: Database["public"]["Enums"]["contract_status"]
+          template_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "firm_contracts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_firm_contact: {
         Args: {
           p_email?: string
@@ -1672,6 +1899,36 @@ export type Database = {
           p_role_title?: string
         }
         Returns: string
+      }
+      create_invoice: {
+        Args: {
+          p_due_days?: number
+          p_gst_rate?: number
+          p_placement_id: string
+          p_sent_to_person_id: string
+        }
+        Returns: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          due_at: string | null
+          gst_amount: number
+          id: string
+          invoice_number: string
+          issued_at: string
+          placement_id: string
+          sent_at: string | null
+          sent_to_person_id: string | null
+          total_amount: number
+          updated_at: string
+          viewed_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       current_app_role: {
         Args: never
@@ -1705,6 +1962,58 @@ export type Database = {
           title: string
         }[]
       }
+      mark_contract_sent: {
+        Args: { p_contract_id: string }
+        Returns: {
+          body_html_snapshot: string
+          created_at: string
+          created_by: string | null
+          fee_percent: number | null
+          firm_id: string
+          guarantee_days: number | null
+          id: string
+          sent_at: string | null
+          sent_to_person_id: string | null
+          signature_ip: string | null
+          signed_at: string | null
+          signed_by_email: string | null
+          signed_by_name: string | null
+          status: Database["public"]["Enums"]["contract_status"]
+          template_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "firm_contracts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      mark_invoice_sent: {
+        Args: { p_invoice_id: string }
+        Returns: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          due_at: string | null
+          gst_amount: number
+          id: string
+          invoice_number: string
+          issued_at: string
+          placement_id: string
+          sent_at: string | null
+          sent_to_person_id: string | null
+          total_amount: number
+          updated_at: string
+          viewed_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       normalise_email: { Args: { p_email: string }; Returns: string }
       process_email_event: {
         Args: {
@@ -1726,6 +2035,38 @@ export type Database = {
           person_id: string
         }[]
       }
+      record_contract_signature: {
+        Args: {
+          p_contract_id: string
+          p_signature_ip: string
+          p_signed_by_email: string
+          p_signed_by_name: string
+        }
+        Returns: {
+          body_html_snapshot: string
+          created_at: string
+          created_by: string | null
+          fee_percent: number | null
+          firm_id: string
+          guarantee_days: number | null
+          id: string
+          sent_at: string | null
+          sent_to_person_id: string | null
+          signature_ip: string | null
+          signed_at: string | null
+          signed_by_email: string | null
+          signed_by_name: string | null
+          status: Database["public"]["Enums"]["contract_status"]
+          template_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "firm_contracts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       record_email_sent: {
         Args: {
           p_campaign_recipient_id: string
@@ -1734,6 +2075,31 @@ export type Database = {
           p_subject_snapshot: string
         }
         Returns: string
+      }
+      record_invoice_viewed: {
+        Args: { p_invoice_id: string }
+        Returns: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          due_at: string | null
+          gst_amount: number
+          id: string
+          invoice_number: string
+          issued_at: string
+          placement_id: string
+          sent_at: string | null
+          sent_to_person_id: string | null
+          total_amount: number
+          updated_at: string
+          viewed_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       record_report_delivered: {
         Args: { p_report_request_id: string }
@@ -1780,6 +2146,33 @@ export type Database = {
           total_active: number
         }[]
       }
+      void_contract: {
+        Args: { p_contract_id: string }
+        Returns: {
+          body_html_snapshot: string
+          created_at: string
+          created_by: string | null
+          fee_percent: number | null
+          firm_id: string
+          guarantee_days: number | null
+          id: string
+          sent_at: string | null
+          sent_to_person_id: string | null
+          signature_ip: string | null
+          signed_at: string | null
+          signed_by_email: string | null
+          signed_by_name: string | null
+          status: Database["public"]["Enums"]["contract_status"]
+          template_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "firm_contracts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       app_role: "admin" | "recruiter" | "marketing" | "viewer"
@@ -1790,6 +2183,7 @@ export type Database = {
         | "paused"
         | "completed"
         | "cancelled"
+      contract_status: "draft" | "sent" | "signed" | "void"
       firm_relationship_stage:
         | "prospect"
         | "contacted"
@@ -1857,12 +2251,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1886,11 +2280,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1911,11 +2305,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1936,11 +2330,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1953,11 +2347,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1981,6 +2375,7 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      contract_status: ["draft", "sent", "signed", "void"],
       firm_relationship_stage: [
         "prospect",
         "contacted",

@@ -220,6 +220,99 @@ verified by code review and the type/build checks rather than a live
 click-through; worth you giving the assistant and a job's fee-recording
 flow a try next time you're in the app.
 
+## Send-a-contract, send-an-invoice (2026-09-03)
+
+Two related document flows, requested directly by the user: a way to send
+a recruitment contract to a firm for signature, and a way to send an
+invoice for a placement's fee. Both share the same shape — a template
+rendered into an immutable snapshot at send time (so editing the template
+later never rewrites a document already sent), a signed-token public link
+(same HMAC pattern as the Milestone 5 unsubscribe link, under its own
+`DOCUMENT_TOKEN_SECRET` rather than reusing `UNSUBSCRIBE_TOKEN_SECRET` —
+different blast radius if either ever leaked), and a public, no-login page
+server-rendered directly by the Netlify function (`sign-contract.ts`,
+`view-invoice.ts`), the same "no SPA route" approach as `unsubscribe.ts`.
+
+**Two decisions made directly by the user, asked up front rather than
+assumed**: contract signing is a deliberately lightweight, self-built
+e-signature — a typed full name, timestamp and IP captured against a
+uniquely-tokened link — over integrating a real e-signature provider
+(DocuSign etc.), to avoid a new paid third-party dependency; and invoices
+are delivered as an emailed link to a viewable page, over generating and
+attaching an actual PDF.
+
+- **Contracts**: `contract_templates` (one seeded "Standard recruitment
+  terms" template with `{{firm_name}}`/`{{fee_percent}}`/
+  `{{guarantee_days}}`/`{{today}}` merge fields — no template-editor page
+  yet, editing the wording for now means updating the row directly) and
+  `firm_contracts` (`draft` → `sent` → `signed`/`void`). Sending a
+  contract (`create_contract` then, once the email actually goes out,
+  `mark_contract_sent`) advances a `prospect`/`contacted` firm to
+  `terms_sent`; a real signature (`record_contract_signature`, reached
+  only through `sign-contract.ts` under the service role, idempotent —
+  a doubled submit doesn't overwrite the recorded signature) advances it
+  to `terms_signed` — the relationship-stage lifecycle Milestone 22
+  defined but never had anything actually driving it. `FirmContracts.tsx`
+  on the firm detail page shows the history and lets staff send a new one
+  or void an unsigned one.
+- **Invoices**: `invoices`, one per placement, referencing the fee
+  already recorded on it (`create_invoice` refuses a placement with no
+  fee recorded — an invoice full of blanks helps no one) and computing
+  GST/total. Sending one (`create_invoice` then `mark_invoice_sent`)
+  flips `placements.invoice_status` from `not_invoiced` to `invoiced` the
+  first time, but never overrides a status staff already progressed
+  further — that dropdown stays the source of truth afterward. The
+  view-invoice page marks `viewed_at` the first time it's opened
+  (`record_invoice_viewed`, idempotent). Wired into `JobDetail.tsx`
+  right where the fee is recorded, matching the placement's earlier
+  "record fee on the job, not a separate page" decision.
+
+**A second confirmed instance of the Supabase-default-privileges gap**
+(first found during the full review above): testing
+`record_contract_signature` and `record_invoice_viewed` — both meant to
+be reachable only via their respective Netlify function under the
+service role, with no `GRANT EXECUTE` written anywhere in the migration —
+showed them directly callable by an ordinary authenticated client anyway.
+Same root cause as before: Supabase grants EXECUTE on every new function
+to `anon`/`authenticated` automatically, so "never granted" isn't actually
+true until `PUBLIC`/`anon`/`authenticated` are explicitly revoked. Fixed
+in the same migration, and both are now covered by
+`supabase/tests/contracts_and_invoices.sql`'s 10 assertions (role checks,
+merge-field rendering, the relationship-stage and invoice-status side
+effects, both idempotent service-role functions, and the direct-call
+rejection checked specifically against Postgres's `insufficient_privilege`
+error). Worth remembering for any future SECURITY DEFINER function meant
+to be internal-only: write the explicit revoke, don't rely on simply
+never writing a grant.
+
+**One remaining manual step, same category as creating your own login or
+setting up Apollo/a real email provider**: this needs a
+`DOCUMENT_TOKEN_SECRET` environment variable in Netlify (Site
+configuration → Environment variables) that isn't set yet — I don't have
+a Netlify access token in this environment to set it myself the way
+`UNSUBSCRIBE_TOKEN_SECRET` and the others were set up. Any long random
+string works; a fresh one is fine, it doesn't need to match anything
+else. Until it's set, `send-contract`/`send-invoice`/`sign-contract`/
+`view-invoice` will fail (`getDocumentTokenSecret()` throws) — everything
+else in this change is unaffected.
+
+Both sends still go through the fake email provider from Milestone 4 (no
+real provider account exists yet), so a "sent" contract or invoice logs
+what it would have sent to the console rather than actually emailing
+anyone — same caveat as every other send in this project until a real
+provider is connected.
+
+Verification: `supabase/tests/contracts_and_invoices.sql`, 10/10 passing;
+`npm run validate` clean; every PostgREST embed used in the new client
+code (`contracts.ts`, `invoices.ts`, and the two public Netlify functions'
+joins) individually confirmed against the live schema via a direct REST
+call — each returns `200` with the right shape rather than a
+relationship-resolution error, since RLS alone can't be used to tell a
+working query from a broken one when the caller has no rows to see
+either way. The signing and invoice-viewing pages themselves, and the
+"Send contract"/"Send invoice" buttons, need `DOCUMENT_TOKEN_SECRET` set
+before they can be tried live — worth doing once that's in place.
+
 ## Stack
 
 React + TypeScript + Vite + Tailwind, deployed to Netlify (static site +

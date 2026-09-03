@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import { FirmForm } from '@/components/FirmForm'
 import { FirmContacts } from '@/components/FirmContacts'
+import { FirmContracts } from '@/components/FirmContracts'
 import { FileAttachments } from '@/components/FileAttachments'
 import { ActivityFeed } from '@/components/ActivityFeed'
 import { TaskList } from '@/components/TaskList'
@@ -223,6 +224,10 @@ export function FirmDetailPage() {
 
       <div className="mt-6 rounded-lg border border-ink/10 bg-paper p-5">
         <FirmContacts firmId={firm.id} />
+      </div>
+
+      <div className="mt-6 rounded-lg border border-ink/10 bg-paper p-5">
+        <FirmContracts firmId={firm.id} />
       </div>
 
       <div className="mt-6 rounded-lg border border-ink/10 bg-paper p-5">

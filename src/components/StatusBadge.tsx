@@ -65,6 +65,13 @@ export const surveyStatusTone: Record<string, BadgeTone> = {
   closed: 'neutral',
 }
 
+export const contractStatusTone: Record<string, BadgeTone> = {
+  draft: 'neutral',
+  sent: 'warning',
+  signed: 'success',
+  void: 'danger',
+}
+
 export const submissionStageTone: Record<string, BadgeTone> = {
   longlist: 'neutral',
   shortlist: 'neutral',
