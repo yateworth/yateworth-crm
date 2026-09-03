@@ -31,8 +31,12 @@ function money(value: number): string {
   return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-function html(body: string, status = 200): Response {
-  return new Response(renderPublicPage('Invoice', body), {
+function dateLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function html(body: string, dateForLetterhead: string, status = 200): Response {
+  return new Response(renderPublicPage('Invoice', body, dateForLetterhead), {
     status,
     headers: { 'content-type': 'text/html; charset=utf-8' },
   })
@@ -50,7 +54,7 @@ export default async (req: Request, _context: Context) => {
   const admin = getSupabaseAdmin()
 
   const invoiceId = verifyDocumentToken(token, 'invoice', getDocumentTokenSecret())
-  if (!invoiceId) return html(INVALID_LINK, 400)
+  if (!invoiceId) return html(INVALID_LINK, dateLabel(new Date().toISOString()), 400)
 
   const { data } = await admin
     .from('invoices')
@@ -62,7 +66,7 @@ export default async (req: Request, _context: Context) => {
     .maybeSingle()
 
   const invoice = data as unknown as InvoiceRow | null
-  if (!invoice) return html(INVALID_LINK, 400)
+  if (!invoice) return html(INVALID_LINK, dateLabel(new Date().toISOString()), 400)
 
   await admin.rpc('record_invoice_viewed', { p_invoice_id: invoiceId })
 
@@ -75,16 +79,19 @@ export default async (req: Request, _context: Context) => {
   const body = `
 <h1>Invoice ${escapeHtml(invoice.invoice_number)}</h1>
 <p><strong>${escapeHtml(firm?.legal_name ?? firm?.name ?? 'Firm')}</strong>${address ? `<br>${escapeHtml(address)}` : ''}</p>
-<p>Issued: ${new Date(invoice.issued_at).toLocaleDateString()}${invoice.due_at ? ` &nbsp;•&nbsp; Due: ${new Date(invoice.due_at).toLocaleDateString()}` : ''}</p>
+<p>Issued: ${dateLabel(invoice.issued_at)}${invoice.due_at ? ` &nbsp;•&nbsp; Due: ${dateLabel(invoice.due_at)}` : ''}</p>
 <table>
   <tr><th>Description</th><th style="text-align:right">Amount</th></tr>
   <tr><td>Recruitment placement fee — ${escapeHtml(job?.title ?? 'role')} (${escapeHtml(candidateName)})</td><td style="text-align:right">${money(invoice.amount)}</td></tr>
   <tr><td>GST</td><td style="text-align:right">${money(invoice.gst_amount)}</td></tr>
   <tr class="total-row"><td>Total</td><td style="text-align:right">${money(invoice.total_amount)}</td></tr>
 </table>
-<p style="margin-top:2rem;font-size:0.85rem;color:#6b6459">Please remit payment by the due date above. Contact Yateworth Recruitment with any questions about this invoice.</p>`
+<p style="margin-top:2rem;font-size:0.85rem;color:var(--sec)">Please remit payment by the due date above. Contact Yateworth Recruitment with any questions about this invoice.</p>
+<div class="actions no-print">
+  <button class="btn btn-secondary" type="button" onclick="window.print()">Download PDF</button>
+</div>`
 
-  return html(body)
+  return html(body, dateLabel(invoice.issued_at))
 }
 
 export const config: Config = {

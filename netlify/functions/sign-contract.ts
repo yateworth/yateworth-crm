@@ -18,13 +18,18 @@ interface ContractRow {
   id: string
   status: 'draft' | 'sent' | 'signed' | 'void'
   body_html_snapshot: string
+  created_at: string
   signed_at: string | null
   signed_by_name: string | null
   firms: { name: string } | null
 }
 
-function html(body: string, status = 200): Response {
-  return new Response(renderPublicPage('Recruitment contract', body), {
+function dateLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function html(body: string, dateForLetterhead: string, status = 200): Response {
+  return new Response(renderPublicPage('Recruitment contract', body, dateForLetterhead), {
     status,
     headers: { 'content-type': 'text/html; charset=utf-8' },
   })
@@ -35,34 +40,67 @@ const INVALID_LINK = '<h1>Link not valid</h1><p class="error">This link is inval
 async function fetchContract(admin: ReturnType<typeof getSupabaseAdmin>, contractId: string) {
   const { data } = await admin
     .from('firm_contracts')
-    .select('id, status, body_html_snapshot, signed_at, signed_by_name, firms(name)')
+    .select('id, status, body_html_snapshot, created_at, signed_at, signed_by_name, firms(name)')
     .eq('id', contractId)
     .maybeSingle()
   return data as unknown as ContractRow | null
 }
+
+// A live cursive preview of the typed name, so the box reads as an
+// actual signature rather than a plain text field — this is still just
+// a typed name captured with a timestamp/IP (see the note at the top of
+// migration 32), not a certified e-signature, but it should feel like
+// signing something.
+const SIGNATURE_SCRIPT = `<script>
+(function () {
+  var input = document.getElementById('signedByName');
+  var preview = document.getElementById('signaturePreview');
+  if (!input || !preview) return;
+  function render() {
+    var v = input.value.trim();
+    preview.textContent = v || 'Your signature will appear here';
+    preview.classList.toggle('placeholder', !v);
+  }
+  input.addEventListener('input', render);
+  render();
+})();
+</script>`
 
 function renderContractBody(contract: ContractRow, token: string, errorMessage?: string): string {
   if (contract.status === 'void') {
     return '<h1>This contract is no longer valid</h1><p class="notice">It was withdrawn by Yateworth Recruitment. Please get in touch if you believe this is a mistake.</p>'
   }
   if (contract.status === 'signed') {
-    return `<h1>Already signed</h1><p class="notice">This was signed by ${escapeHtml(contract.signed_by_name ?? 'you')} on ${new Date(contract.signed_at!).toLocaleDateString()}.</p>${contract.body_html_snapshot}`
+    return `<h1>Recruitment terms — signed</h1><p class="notice">Signed by ${escapeHtml(contract.signed_by_name ?? 'you')} on ${dateLabel(contract.signed_at!)}.</p>
+${contract.body_html_snapshot}
+<div class="actions no-print">
+  <button class="btn btn-secondary" type="button" onclick="window.print()">Download PDF</button>
+</div>`
   }
   return `
+<h1>Recruitment terms of business</h1>
+<p>Prepared for ${escapeHtml(contract.firms?.name ?? 'your firm')} on ${dateLabel(contract.created_at)}.</p>
 ${contract.body_html_snapshot}
-<hr>
 <h2>Sign this agreement</h2>
 ${errorMessage ? `<p class="error">${escapeHtml(errorMessage)}</p>` : ''}
 <form method="POST">
   <input type="hidden" name="token" value="${escapeHtml(token)}">
   <label for="signedByName">Your full name</label>
-  <input type="text" id="signedByName" name="signedByName" required>
+  <input type="text" id="signedByName" name="signedByName" required autocomplete="name">
+  <div class="signature-box">
+    <div class="signature-preview placeholder" id="signaturePreview">Your signature will appear here</div>
+    <div class="signature-caption">Signature</div>
+  </div>
   <div class="checkbox-row">
     <input type="checkbox" id="agree" name="agree" value="yes" required>
     <label for="agree" style="margin:0">I confirm I am authorised to sign these terms on behalf of ${escapeHtml(contract.firms?.name ?? 'this firm')}.</label>
   </div>
-  <button type="submit">Sign &amp; agree</button>
-</form>`
+  <div class="actions">
+    <button type="submit">Sign &amp; agree</button>
+    <button class="btn btn-secondary no-print" type="button" onclick="window.print()">Download PDF</button>
+  </div>
+</form>
+${SIGNATURE_SCRIPT}`
 }
 
 export default async (req: Request, context: Context) => {
@@ -73,25 +111,25 @@ export default async (req: Request, context: Context) => {
   if (req.method === 'GET') {
     const token = url.searchParams.get('token') ?? ''
     const contractId = verifyDocumentToken(token, 'contract', secret)
-    if (!contractId) return html(INVALID_LINK, 400)
+    if (!contractId) return html(INVALID_LINK, dateLabel(new Date().toISOString()), 400)
 
     const contract = await fetchContract(admin, contractId)
-    if (!contract) return html(INVALID_LINK, 400)
+    if (!contract) return html(INVALID_LINK, dateLabel(new Date().toISOString()), 400)
 
-    return html(renderContractBody(contract, token))
+    return html(renderContractBody(contract, token), dateLabel(contract.created_at))
   }
 
   if (req.method === 'POST') {
     const form = await req.formData()
     const token = String(form.get('token') ?? '')
     const contractId = verifyDocumentToken(token, 'contract', secret)
-    if (!contractId) return html(INVALID_LINK, 400)
+    if (!contractId) return html(INVALID_LINK, dateLabel(new Date().toISOString()), 400)
 
     const contract = await fetchContract(admin, contractId)
-    if (!contract) return html(INVALID_LINK, 400)
+    if (!contract) return html(INVALID_LINK, dateLabel(new Date().toISOString()), 400)
 
     if (contract.status === 'void' || contract.status === 'signed') {
-      return html(renderContractBody(contract, token))
+      return html(renderContractBody(contract, token), dateLabel(contract.created_at))
     }
 
     const signedByName = String(form.get('signedByName') ?? '').trim()
@@ -99,6 +137,7 @@ export default async (req: Request, context: Context) => {
     if (!signedByName || !agreed) {
       return html(
         renderContractBody(contract, token, 'Please enter your full name and confirm you are authorised to sign.'),
+        dateLabel(contract.created_at),
         400,
       )
     }
@@ -128,11 +167,11 @@ export default async (req: Request, context: Context) => {
     })
     if (error) {
       console.error('sign-contract: record_contract_signature failed', error)
-      return html('<h1>Something went wrong</h1><p class="error">Please try again shortly.</p>', 500)
+      return html('<h1>Something went wrong</h1><p class="error">Please try again shortly.</p>', dateLabel(contract.created_at), 500)
     }
 
     const signed = await fetchContract(admin, contractId)
-    return html(renderContractBody(signed!, token))
+    return html(renderContractBody(signed!, token), dateLabel(signed!.created_at))
   }
 
   return new Response('Method not allowed', { status: 405 })
