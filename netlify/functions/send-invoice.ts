@@ -154,7 +154,9 @@ export default async (req: Request, _context: Context) => {
     created_by: userData.user.id,
   })
 
-  return Response.json({ success: true, invoiceId: invoiceRow.id })
+  // Returned so the UI can show it directly — the fake provider never
+  // puts this in a real inbox, so this is how staff preview it for now.
+  return Response.json({ success: true, invoiceId: invoiceRow.id, viewLink })
 }
 
 export const config: Config = {

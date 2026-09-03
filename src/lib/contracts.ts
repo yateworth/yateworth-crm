@@ -47,7 +47,8 @@ export interface SendContractInput {
   guaranteeDays?: number
 }
 
-export async function sendContract(input: SendContractInput): Promise<void> {
+/** Returns the signing link — worth showing to staff directly, since the fake email provider (no real one connected yet) never puts it in an actual inbox. */
+export async function sendContract(input: SendContractInput): Promise<string> {
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -63,8 +64,9 @@ export async function sendContract(input: SendContractInput): Promise<void> {
       guaranteeDays: input.guaranteeDays,
     }),
   })
-  const responseBody = (await response.json()) as { error?: string }
+  const responseBody = (await response.json()) as { error?: string; signLink?: string }
   if (!response.ok) throw new Error(responseBody.error ?? 'Could not send this contract')
+  return responseBody.signLink ?? ''
 }
 
 export async function voidContract(id: string): Promise<void> {

@@ -34,7 +34,8 @@ export interface SendInvoiceInput {
   dueDays?: number
 }
 
-export async function sendInvoice(input: SendInvoiceInput): Promise<void> {
+/** Returns the view link — worth showing to staff directly, since the fake email provider (no real one connected yet) never puts it in an actual inbox. */
+export async function sendInvoice(input: SendInvoiceInput): Promise<string> {
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -49,6 +50,7 @@ export async function sendInvoice(input: SendInvoiceInput): Promise<void> {
       dueDays: input.dueDays,
     }),
   })
-  const responseBody = (await response.json()) as { error?: string }
+  const responseBody = (await response.json()) as { error?: string; viewLink?: string }
   if (!response.ok) throw new Error(responseBody.error ?? 'Could not send this invoice')
+  return responseBody.viewLink ?? ''
 }

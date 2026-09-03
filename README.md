@@ -339,6 +339,17 @@ watching the firm's relationship stage advance — needs your own login,
 so that part is confirmed by you retrying it, not by this session
 directly.
 
+**Follow-up, same day**: since the fake email provider (no real one
+connected yet) means a "sent" contract or invoice never actually reaches
+an inbox, there was no way to see what the recipient would get without
+digging through Netlify function logs. `send-contract.ts`/
+`send-invoice.ts` now also return the signed link in their JSON response
+(`signLink`/`viewLink`), and `FirmContracts.tsx`/`JobDetail.tsx` show it
+directly in the UI right after sending, with a note explaining why it's
+there instead of in an email. Purely a staff-facing convenience — the
+link itself is nothing a recipient wouldn't already be emailed, so
+showing it to the person who just sent it has no privacy implication.
+
 ## Stack
 
 React + TypeScript + Vite + Tailwind, deployed to Netlify (static site +

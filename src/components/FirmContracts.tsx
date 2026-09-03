@@ -21,6 +21,7 @@ export function FirmContracts({ firmId }: { firmId: string }) {
   const [contactPersonId, setContactPersonId] = useState('')
   const [feePercent, setFeePercent] = useState('')
   const [guaranteeDays, setGuaranteeDays] = useState('90')
+  const [lastSignLink, setLastSignLink] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -40,6 +41,7 @@ export function FirmContracts({ firmId }: { firmId: string }) {
   }
 
   useEffect(() => {
+    setLastSignLink(null)
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firmId])
@@ -52,12 +54,13 @@ export function FirmContracts({ firmId }: { firmId: string }) {
     setSending(true)
     setError(null)
     try {
-      await sendContract({
+      const signLink = await sendContract({
         firmId,
         contactPersonId,
         feePercent: feePercent ? Number(feePercent) : undefined,
         guaranteeDays: guaranteeDays ? Number(guaranteeDays) : undefined,
       })
+      setLastSignLink(signLink || null)
       setContactPersonId('')
       setFeePercent('')
       setShowForm(false)
@@ -89,6 +92,23 @@ export function FirmContracts({ firmId }: { firmId: string }) {
       </div>
 
       {error && <p className="mt-2 text-sm text-ox">{error}</p>}
+
+      {lastSignLink && (
+        <div className="mt-2 rounded-md border border-brass/40 bg-brass/10 p-3 text-sm">
+          <p className="text-ink">
+            Sent — no real email provider is connected yet, so here's the exact link the contact would get:
+          </p>
+          <a href={lastSignLink} target="_blank" rel="noreferrer" className="break-all text-ox hover:underline">
+            {lastSignLink}
+          </a>
+          <button
+            onClick={() => setLastSignLink(null)}
+            className="ml-2 align-baseline text-xs text-ink/40 hover:text-ox"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleSend} className="mt-3 space-y-2 rounded-md border border-ink/10 p-3">

@@ -76,6 +76,7 @@ export function JobDetailPage() {
   const [sendingInvoiceFor, setSendingInvoiceFor] = useState<string | null>(null)
   const [invoiceForm, setInvoiceForm] = useState({ contactPersonId: '', dueDays: '14' })
   const [sendingInvoice, setSendingInvoice] = useState(false)
+  const [lastInvoiceLink, setLastInvoiceLink] = useState<string | null>(null)
 
   async function load() {
     if (!id) return
@@ -114,6 +115,7 @@ export function JobDetailPage() {
     setFeeForm({ startDate: '', salary: '', feeAmount: '', guaranteeEndDate: '' })
     setSendingInvoiceFor(null)
     setInvoiceForm({ contactPersonId: '', dueDays: '14' })
+    setLastInvoiceLink(null)
     load()
   }, [id])
 
@@ -152,11 +154,12 @@ export function JobDetailPage() {
     setSendingInvoice(true)
     setError(null)
     try {
-      await sendInvoice({
+      const viewLink = await sendInvoice({
         placementId,
         contactPersonId: invoiceForm.contactPersonId,
         dueDays: invoiceForm.dueDays ? Number(invoiceForm.dueDays) : undefined,
       })
+      setLastInvoiceLink(viewLink || null)
       setSendingInvoiceFor(null)
       setInvoiceForm({ contactPersonId: '', dueDays: '14' })
       await load()
@@ -290,6 +293,23 @@ export function JobDetailPage() {
 
       {error && (
         <div className="mt-4 rounded-lg border border-ox/30 bg-ox/5 p-3 text-sm text-ox">{error}</div>
+      )}
+
+      {lastInvoiceLink && (
+        <div className="mt-4 rounded-md border border-brass/40 bg-brass/10 p-3 text-sm">
+          <p className="text-ink">
+            Sent — no real email provider is connected yet, so here's the exact link the contact would get:
+          </p>
+          <a href={lastInvoiceLink} target="_blank" rel="noreferrer" className="break-all text-ox hover:underline">
+            {lastInvoiceLink}
+          </a>
+          <button
+            onClick={() => setLastInvoiceLink(null)}
+            className="ml-2 align-baseline text-xs text-ink/40 hover:text-ox"
+          >
+            Dismiss
+          </button>
+        </div>
       )}
 
       <div className="mt-4 rounded-lg border border-ink/10 bg-paper p-5">
