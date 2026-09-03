@@ -33,6 +33,7 @@ import {
 } from '@/lib/placements'
 import { fetchInvoicesForJob, sendInvoice, type JobInvoice } from '@/lib/invoices'
 import { fetchFirmContacts, type FirmContact } from '@/lib/firms'
+import { fetchDocumentLink } from '@/lib/documentLink'
 import { TONE_CLASSES, invoiceStatusTone } from '@/components/StatusBadge'
 
 const JOB_STATUSES: JobStatus[] = ['draft', 'open', 'on_hold', 'filled', 'closed', 'cancelled']
@@ -77,6 +78,7 @@ export function JobDetailPage() {
   const [invoiceForm, setInvoiceForm] = useState({ contactPersonId: '', dueDays: '14' })
   const [sendingInvoice, setSendingInvoice] = useState(false)
   const [lastInvoiceLink, setLastInvoiceLink] = useState<string | null>(null)
+  const [previewingInvoiceId, setPreviewingInvoiceId] = useState<string | null>(null)
 
   async function load() {
     if (!id) return
@@ -116,6 +118,7 @@ export function JobDetailPage() {
     setSendingInvoiceFor(null)
     setInvoiceForm({ contactPersonId: '', dueDays: '14' })
     setLastInvoiceLink(null)
+    setPreviewingInvoiceId(null)
     load()
   }, [id])
 
@@ -167,6 +170,18 @@ export function JobDetailPage() {
       setError(err instanceof Error ? err.message : 'Could not send this invoice.')
     } finally {
       setSendingInvoice(false)
+    }
+  }
+
+  async function handlePreviewInvoice(invoiceId: string) {
+    setError(null)
+    setPreviewingInvoiceId(invoiceId)
+    try {
+      setLastInvoiceLink(await fetchDocumentLink('invoice', invoiceId))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not get this link.')
+    } finally {
+      setPreviewingInvoiceId(null)
     }
   }
 
@@ -298,7 +313,7 @@ export function JobDetailPage() {
       {lastInvoiceLink && (
         <div className="mt-4 rounded-md border border-brass/40 bg-brass/10 p-3 text-sm">
           <p className="text-ink">
-            Sent — no real email provider is connected yet, so here's the exact link the contact would get:
+            No real email provider is connected yet, so here's the exact link the contact would get:
           </p>
           <a href={lastInvoiceLink} target="_blank" rel="noreferrer" className="break-all text-ox hover:underline">
             {lastInvoiceLink}
@@ -429,6 +444,14 @@ export function JobDetailPage() {
                                             Invoice {invoice.invoice_number} sent{' '}
                                             {invoice.sent_at ? new Date(invoice.sent_at).toLocaleDateString() : '—'}
                                             {invoice.viewed_at && ' · viewed'}
+                                            {' · '}
+                                            <button
+                                              onClick={() => handlePreviewInvoice(invoice.id)}
+                                              disabled={previewingInvoiceId === invoice.id}
+                                              className="text-ox hover:underline disabled:opacity-50"
+                                            >
+                                              {previewingInvoiceId === invoice.id ? 'Loading…' : 'Preview'}
+                                            </button>
                                           </p>
                                         )
                                       }

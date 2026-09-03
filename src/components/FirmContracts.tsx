@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { fetchContractsForFirm, sendContract, voidContract, type FirmContract } from '@/lib/contracts'
 import { fetchFirmContacts, type FirmContact } from '@/lib/firms'
+import { fetchDocumentLink } from '@/lib/documentLink'
 import { StatusBadge, contractStatusTone } from '@/components/StatusBadge'
 
 const statusLabels: Record<string, string> = {
@@ -22,6 +23,7 @@ export function FirmContracts({ firmId }: { firmId: string }) {
   const [feePercent, setFeePercent] = useState('')
   const [guaranteeDays, setGuaranteeDays] = useState('90')
   const [lastSignLink, setLastSignLink] = useState<string | null>(null)
+  const [previewingId, setPreviewingId] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -72,6 +74,18 @@ export function FirmContracts({ firmId }: { firmId: string }) {
     }
   }
 
+  async function handlePreview(id: string) {
+    setError(null)
+    setPreviewingId(id)
+    try {
+      setLastSignLink(await fetchDocumentLink('contract', id))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not get this link.')
+    } finally {
+      setPreviewingId(null)
+    }
+  }
+
   async function handleVoid(id: string) {
     setError(null)
     try {
@@ -96,7 +110,7 @@ export function FirmContracts({ firmId }: { firmId: string }) {
       {lastSignLink && (
         <div className="mt-2 rounded-md border border-brass/40 bg-brass/10 p-3 text-sm">
           <p className="text-ink">
-            Sent — no real email provider is connected yet, so here's the exact link the contact would get:
+            No real email provider is connected yet, so here's the exact link the contact would get:
           </p>
           <a href={lastSignLink} target="_blank" rel="noreferrer" className="break-all text-ox hover:underline">
             {lastSignLink}
@@ -184,11 +198,20 @@ export function FirmContracts({ firmId }: { firmId: string }) {
                       : 'Not yet sent'}
                 </p>
               </div>
-              {(c.status === 'draft' || c.status === 'sent') && (
-                <button onClick={() => handleVoid(c.id)} className="text-xs text-ink/40 hover:text-ox">
-                  Void
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handlePreview(c.id)}
+                  disabled={previewingId === c.id}
+                  className="text-xs text-ox hover:underline disabled:opacity-50"
+                >
+                  {previewingId === c.id ? 'Loading…' : 'Preview'}
                 </button>
-              )}
+                {(c.status === 'draft' || c.status === 'sent') && (
+                  <button onClick={() => handleVoid(c.id)} className="text-xs text-ink/40 hover:text-ox">
+                    Void
+                  </button>
+                )}
+              </div>
             </div>
           ))
         )}
