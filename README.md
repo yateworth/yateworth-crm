@@ -389,11 +389,17 @@ feature, in order.
 Verification: extended `supabase/tests/contracts_and_invoices.sql`
 confirms only one `record_contract_signature` overload exists after the
 migration and that `signature_image` round-trips correctly (11/11
-still passing); `npm run validate` clean; the branded contract page
-(both the unsigned sign-form view and an already-signed view) checked
-live in the browser pane against a real contract in the database,
-including actually drawing a signature and watching the cursive-free
-canvas capture it correctly.
+still passing); `npm run validate` clean; the branded letterhead itself
+(both the unsigned sign-form view and an already-signed view) was
+checked visually in the browser pane against a real contract in the
+database in the previous round of changes. This round's canvas signing
+pad was verified functionally rather than visually — the browser pane's
+screenshot tool was unreliable this session (intermittently returning a
+blank capture even once the tab was confirmed frontmost) — by
+dispatching synthetic `PointerEvent`s at the actual canvas element and
+reading back its pixel data: a stroke drawn across known coordinates
+left ink at those exact pixels, an untouched corner stayed pure white,
+and clicking "Clear" reset a previously-inked pixel back to white.
 
 ## Stack
 
