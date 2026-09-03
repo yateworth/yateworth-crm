@@ -285,16 +285,38 @@ error). Worth remembering for any future SECURITY DEFINER function meant
 to be internal-only: write the explicit revoke, don't rely on simply
 never writing a grant.
 
-**One remaining manual step, same category as creating your own login or
-setting up Apollo/a real email provider**: this needs a
-`DOCUMENT_TOKEN_SECRET` environment variable in Netlify (Site
-configuration → Environment variables) that isn't set yet — I don't have
-a Netlify access token in this environment to set it myself the way
-`UNSUBSCRIBE_TOKEN_SECRET` and the others were set up. Any long random
-string works; a fresh one is fine, it doesn't need to match anything
-else. Until it's set, `send-contract`/`send-invoice`/`sign-contract`/
-`view-invoice` will fail (`getDocumentTokenSecret()` throws) — everything
-else in this change is unaffected.
+`DOCUMENT_TOKEN_SECRET` is now set in Netlify (added by the user directly
+in the dashboard, since this session has no Netlify access token to set
+it programmatically the way the other secrets were configured) and
+confirmed live: `/api/sign-contract`/`/api/view-invoice` with a bogus
+token both correctly return the styled "link not valid" page instead of
+the `getDocumentTokenSecret()` crash they threw before the variable
+existed.
+
+**A real bug found live, the first time "Send contract" was actually
+clicked in the deployed app**: it failed with "not authorised" for a real
+admin session. Root cause: `send-contract.ts`/`send-invoice.ts` verify
+the caller's session and role themselves (same pattern as
+`send-direct-email.ts`) and then call `create_contract`/
+`mark_contract_sent`/`create_invoice`/`mark_invoice_sent` through the
+**service-role** client — deliberately, since the same request also has
+to write `email_messages`/`activities` rows, both insert-restricted to no
+client role at all. But those four functions, as first written, *also*
+carried their own `current_app_role() is null or ...` check — which
+reads `auth.uid()` from a request JWT, and a service-role call has no JWT
+at all, so `current_app_role()` is always `NULL` for it and the check
+always raised "not authorised". `void_contract` (called directly from
+the browser with the user's own session, not through the service role)
+never hit this and worked correctly throughout. Fixed in
+`supabase/migrations/20260902000033_fix_service_role_only_rpcs.sql`: the
+four functions drop the internal check entirely — the calling Netlify
+function is now the only gate, exactly like `send-direct-email.ts`'s own
+writes — and are locked down to service-role only in exchange, the same
+"explicit revoke, don't rely on never granting" fix as everywhere else.
+That migration also caught `void_contract` still carrying the same
+leftover `anon` grant every function in this project has had by default
+(harmless here, since its own check already rejects an unauthenticated
+caller, but revoked anyway on principle).
 
 Both sends still go through the fake email provider from Milestone 4 (no
 real provider account exists yet), so a "sent" contract or invoice logs
@@ -302,16 +324,20 @@ what it would have sent to the console rather than actually emailing
 anyone — same caveat as every other send in this project until a real
 provider is connected.
 
-Verification: `supabase/tests/contracts_and_invoices.sql`, 10/10 passing;
-`npm run validate` clean; every PostgREST embed used in the new client
-code (`contracts.ts`, `invoices.ts`, and the two public Netlify functions'
-joins) individually confirmed against the live schema via a direct REST
-call — each returns `200` with the right shape rather than a
+Verification: `supabase/tests/contracts_and_invoices.sql`, rewritten
+after the service-role fix to match the corrected security model (an
+authenticated admin session now correctly gets rejected from the four
+service-role-only functions, not just an unrecognised caller) — 11/11
+passing; `npm run validate` clean; every PostgREST embed used in the new
+client code (`contracts.ts`, `invoices.ts`, and the two public Netlify
+functions' joins) individually confirmed against the live schema via a
+direct REST call — each returns `200` with the right shape rather than a
 relationship-resolution error, since RLS alone can't be used to tell a
 working query from a broken one when the caller has no rows to see
-either way. The signing and invoice-viewing pages themselves, and the
-"Send contract"/"Send invoice" buttons, need `DOCUMENT_TOKEN_SECRET` set
-before they can be tried live — worth doing once that's in place.
+either way. The actual click-through — sending a real contract and
+watching the firm's relationship stage advance — needs your own login,
+so that part is confirmed by you retrying it, not by this session
+directly.
 
 ## Stack
 

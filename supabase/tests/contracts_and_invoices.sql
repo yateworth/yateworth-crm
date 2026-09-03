@@ -1,5 +1,15 @@
--- Contracts and invoices assertions (migration 32).
+-- Contracts and invoices assertions (migrations 32 + 33).
 -- Run with: node scripts/run-remote-sql.cjs supabase/tests/contracts_and_invoices.sql
+--
+-- create_contract/mark_contract_sent/create_invoice/mark_invoice_sent are
+-- service-role only (migration 33, fixed after a real "not authorised"
+-- bug in production) - send-contract.ts/send-invoice.ts verify the
+-- caller's session and role themselves, then call these through the
+-- service role client, so these functions must NOT be reachable by any
+-- authenticated client directly, admin or not. void_contract is the one
+-- exception: it IS called directly from the browser with the user's own
+-- session (src/lib/contracts.ts), so it correctly keeps its own
+-- current_app_role() check and its grant to authenticated.
 
 begin;
 
@@ -43,9 +53,11 @@ begin
 end $$;
 
 set local role authenticated;
+select set_config('request.jwt.claim.sub', '0cb3064c-f944-4648-b0e5-e2e49ec4f015', true); -- a real admin profile
 
--- 1. create_contract rejects an unauthorised (no-profile) caller
-select set_config('request.jwt.claim.sub', '99999999-9999-9999-9999-999999999999', true);
+-- 1. create_contract is not directly callable even by a real,
+-- authenticated admin - it's service-role only now, so role doesn't
+-- come into it at all
 do $$
 declare
   v_firm_id uuid;
@@ -56,14 +68,16 @@ begin
     into v_firm_id, v_template_id, v_contact_person_id
     from test_results where seq = 0;
   perform create_contract(v_firm_id, v_template_id, v_contact_person_id, 20, 90);
-  insert into test_results values (1, 'FAIL 1: create_contract was callable by an unauthorised caller');
-exception when others then
-  insert into test_results values (1, 'PASS 1: create_contract rejects an unauthorised caller');
+  insert into test_results values (1, 'FAIL 1: create_contract was callable directly by an authenticated admin');
+exception when insufficient_privilege then
+  insert into test_results values (1, 'PASS 1: create_contract is service-role only, not callable by an authenticated admin');
 end $$;
 
--- 2. as a real admin: create_contract renders merge fields into the
+reset role;
+
+-- 2. As postgres (simulating the service-role path send-contract.ts
+-- actually uses): create_contract renders merge fields into the
 -- snapshot, and the contract starts in 'draft' (not yet 'sent')
-select set_config('request.jwt.claim.sub', '0cb3064c-f944-4648-b0e5-e2e49ec4f015', true);
 do $$
 declare
   v_firm_id uuid;
@@ -89,7 +103,8 @@ begin
 end $$;
 
 -- 3. mark_contract_sent advances a prospect/contacted firm to
--- terms_sent, and the contract itself becomes 'sent'
+-- terms_sent, and the contract itself becomes 'sent' - also service-role
+-- only, so this runs as postgres too
 do $$
 declare
   v_contract_id uuid;
@@ -109,6 +124,9 @@ begin
     else 'FAIL 3: mark_contract_sent did not behave as expected (status=' || v_contract.status || ', stage=' || v_stage || ')' end);
 end $$;
 
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '0cb3064c-f944-4648-b0e5-e2e49ec4f015', true);
+
 -- 4. record_contract_signature is not directly callable by any client
 -- role - it has no internal role check of its own, so rejection must
 -- come from never being granted execute in the first place
@@ -125,10 +143,9 @@ end $$;
 
 reset role;
 
--- 5. As postgres (bypasses RLS/grants, simulating the service-role path
--- sign-contract.ts actually uses): signing advances the firm straight to
--- terms_signed, and a second signature call is idempotent - it does not
--- overwrite signed_at/signed_by_name.
+-- 5. As postgres: signing advances the firm straight to terms_signed,
+-- and a second signature call is idempotent - it does not overwrite
+-- signed_at/signed_by_name.
 do $$
 declare
   v_contract_id uuid;
@@ -158,7 +175,10 @@ end $$;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '0cb3064c-f944-4648-b0e5-e2e49ec4f015', true);
 
--- 6. void_contract refuses to void an already-signed contract
+-- 6. void_contract is the one function of this group still called
+-- directly from the browser with the user's own session, so it still
+-- has its own role check and grant - confirm it refuses to void an
+-- already-signed contract
 do $$
 declare
   v_contract_id uuid;
@@ -170,7 +190,11 @@ exception when others then
   insert into test_results values (6, 'PASS 6: void_contract refuses to void a signed contract');
 end $$;
 
--- 7. create_invoice refuses a placement with no fee recorded
+reset role;
+
+-- 7. create_invoice is service-role only too - refuses a placement with
+-- no fee recorded, tested as postgres since an authenticated client
+-- can't reach it at all any more
 do $$
 declare
   v_bare_placement_id uuid;
@@ -208,6 +232,9 @@ begin
   insert into test_results values (11, v_invoice.id::text);
 end $$;
 
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '0cb3064c-f944-4648-b0e5-e2e49ec4f015', true);
+
 -- 9. record_invoice_viewed is not directly callable by any client role
 do $$
 declare
@@ -220,9 +247,23 @@ exception when insufficient_privilege then
   insert into test_results values (9, 'PASS 9: record_invoice_viewed is not directly callable');
 end $$;
 
+-- 10. mark_contract_sent/mark_invoice_sent/create_contract/create_invoice
+-- are also confirmed not callable here, as the same authenticated admin
+-- session used throughout this block - belt and braces alongside test 1
+do $$
+declare
+  v_placement_id uuid;
+begin
+  select split_part(result, ',', 4)::uuid into v_placement_id from test_results where seq = 0;
+  perform create_invoice(v_placement_id, null);
+  insert into test_results values (13, 'FAIL 10: create_invoice was callable directly by an authenticated admin');
+exception when insufficient_privilege then
+  insert into test_results values (13, 'PASS 10: create_invoice is service-role only, not callable by an authenticated admin');
+end $$;
+
 reset role;
 
--- 10. As postgres (service-role path): record_invoice_viewed is
+-- 12. As postgres (service-role path): record_invoice_viewed is
 -- idempotent - a second view doesn't move viewed_at.
 do $$
 declare
@@ -240,10 +281,10 @@ begin
 
   insert into test_results values (12,
     case when v_invoice.viewed_at = v_first_viewed_at and v_first_viewed_at is not null
-    then 'PASS 10: record_invoice_viewed is idempotent'
-    else 'FAIL 10: viewed_at moved on a second view' end);
+    then 'PASS 12: record_invoice_viewed is idempotent'
+    else 'FAIL 12: viewed_at moved on a second view' end);
 end $$;
 
-select seq, result from test_results where seq in (1,2,3,4,5,6,7,8,9,12) order by seq;
+select seq, result from test_results where seq in (1,2,3,4,5,6,7,8,9,12,13) order by seq;
 
 rollback;
